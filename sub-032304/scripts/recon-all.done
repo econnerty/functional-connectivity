@@ -1,0 +1,13 @@
+------------------------------
+SUBJECT sub-032304
+START_TIME Mon Sep 4 11:25:10 EDT 2023
+END_TIME Mon Sep 4 20:14:44 EDT 2023
+RUNTIME_HOURS 8.826
+USER erikc
+HOST lina
+PROCESSOR x86_64
+OS Linux
+UNAME Linux lina 5.15.0-82-generic #91-Ubuntu SMP Mon Aug 14 14:14:14 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux
+VERSION 7.4.1 (freesurfer-linux-ubuntu22_x86_64-7.4.1-20230614-7eb8460)
+CMDPATH /scratch/MPI-LEMON/freesurfer/bin/recon-all
+CMDARGS -i pre_mri/sub-032304/ses-01/anat/denoised.nii -s sub-032304 -all

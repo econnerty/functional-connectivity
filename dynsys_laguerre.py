@@ -4,7 +4,7 @@ import xarray as xr
 from scipy.stats import zscore
 from scipy.special import eval_genlaguerre
 
-REGRESSOR_COUNT = 50
+REGRESSOR_COUNT = 4
 
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)

@@ -1,0 +1,94 @@
+Log file for defect2seg
+Mon Sep  4 17:29:00 EDT 2023
+
+setenv SUBJECTS_DIR /scratch/MPI-LEMON/freesurfer/subjects
+cd /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/scripts
+/scratch/MPI-LEMON/freesurfer/bin/defect2seg --s sub-032304 --cortex
+
+freesurfer-linux-ubuntu22_x86_64-7.4.1-20230614-7eb8460
+defect2seg 7.4.1
+Linux lina 5.15.0-82-generic #91-Ubuntu SMP Mon Aug 14 14:14:14 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux
+pid 1097869
+mri_label2label --label-cortex /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.orig.nofix /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/aseg.presurf.mgz 0 /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/lh.nofix.cortex.label
+
+ Generating cortex label... RemoveHipAmgy=0
+ NucAccIsMedialWall=0
+ mris->useRealRAS=0
+16 non-cortical segments detected
+only using segment with 8251 vertices
+erasing segment 1 (vno[0] = 48190)
+erasing segment 2 (vno[0] = 92833)
+erasing segment 3 (vno[0] = 93926)
+erasing segment 4 (vno[0] = 93984)
+erasing segment 5 (vno[0] = 94939)
+erasing segment 6 (vno[0] = 94961)
+erasing segment 7 (vno[0] = 95032)
+erasing segment 8 (vno[0] = 95963)
+erasing segment 9 (vno[0] = 96019)
+erasing segment 10 (vno[0] = 97949)
+erasing segment 11 (vno[0] = 98163)
+erasing segment 12 (vno[0] = 98964)
+erasing segment 13 (vno[0] = 99866)
+erasing segment 14 (vno[0] = 100130)
+erasing segment 15 (vno[0] = 116848)
+mri_label2vol --defects /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.orig.nofix /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.defect_labels /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/orig.mgz 1000 0 /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/surface.defects.mgz /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/lh.nofix.cortex.label
+mri_label2vol supposed to be reproducible but seed not set
+Contraining to label /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/lh.nofix.cortex.label
+Changing input type 0 to MRI_INT
+Converting defects to volume: offset=1000, merge=0
+Writing to /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/surface.defects.mgz
+mris_defects_pointset -s /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.orig.nofix -d /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.defect_labels -o /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.defects.pointset --label /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/lh.nofix.cortex.label
+Reading in surface /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.orig.nofix
+Reading in defect segmentation /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/lh.defect_labels
+Reading in label /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/lh.nofix.cortex.label
+#VMPC# mris_defects_pointset 184688
+mris_defects_pointset done
+mri_label2label --label-cortex /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.orig.nofix /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/aseg.presurf.mgz 0 /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/rh.nofix.cortex.label
+
+ Generating cortex label... RemoveHipAmgy=0
+ NucAccIsMedialWall=0
+ mris->useRealRAS=0
+24 non-cortical segments detected
+only using segment with 8559 vertices
+erasing segment 1 (vno[0] = 46517)
+erasing segment 2 (vno[0] = 60901)
+erasing segment 3 (vno[0] = 66587)
+erasing segment 4 (vno[0] = 72715)
+erasing segment 5 (vno[0] = 76135)
+erasing segment 6 (vno[0] = 78163)
+erasing segment 7 (vno[0] = 79257)
+erasing segment 8 (vno[0] = 83037)
+erasing segment 9 (vno[0] = 84765)
+erasing segment 10 (vno[0] = 94644)
+erasing segment 11 (vno[0] = 99339)
+erasing segment 12 (vno[0] = 100319)
+erasing segment 13 (vno[0] = 100531)
+erasing segment 14 (vno[0] = 101335)
+erasing segment 15 (vno[0] = 101528)
+erasing segment 16 (vno[0] = 101539)
+erasing segment 17 (vno[0] = 102469)
+erasing segment 18 (vno[0] = 103479)
+erasing segment 19 (vno[0] = 108080)
+erasing segment 20 (vno[0] = 110890)
+erasing segment 21 (vno[0] = 115765)
+erasing segment 22 (vno[0] = 124694)
+erasing segment 23 (vno[0] = 126332)
+mri_label2vol --defects /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.orig.nofix /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.defect_labels /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/surface.defects.mgz 2000 1 /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/surface.defects.mgz /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/rh.nofix.cortex.label
+mri_label2vol supposed to be reproducible but seed not set
+Contraining to label /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/rh.nofix.cortex.label
+Converting defects to volume: offset=2000, merge=1
+Writing to /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/surface.defects.mgz
+mris_defects_pointset -s /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.orig.nofix -d /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.defect_labels -o /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.defects.pointset --label /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/rh.nofix.cortex.label
+Reading in surface /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.orig.nofix
+Reading in defect segmentation /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/surf/rh.defect_labels
+Reading in label /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/label/rh.nofix.cortex.label
+#VMPC# mris_defects_pointset 187364
+mris_defects_pointset done
+ 
+Started at Mon Sep 4 17:29:00 EDT 2023 
+Ended   at Mon Sep  4 17:29:44 EDT 2023
+Defect2seg-Run-Time-Sec 44
+Defect2seg-Run-Time-Min 0.88
+Defect2seg-Run-Time-Hours 0.01
+ 
+defect2seg Done

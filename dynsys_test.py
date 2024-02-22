@@ -16,7 +16,7 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_orig as dynsys
+import dynsys_laguerre as dynsys
 
 
 # In[2]:
@@ -110,7 +110,7 @@ for subject in subjects:
             mats=[]
             condition_numbers = []
             mse = []
-            for i in range(1):
+            for i in range(10):
                 inds = np.random.choice(range(n),int(n/2),replace=False)
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
@@ -122,14 +122,13 @@ for subject in subjects:
             region = [label.name for label in filtered_labels]
             #frequencies = list(frequencies[64:112])
             bootstrap_samples = list(range(1))
-            print("CONDITION NUMBERS:")
-            print(condition_numbers)
-            print("END")
+            print("CONDITION NUMBER:")
+            print(np.mean(condition_numbers))
             print("MSE:")
-            print(mse)
+            print(np.mean(mse))
         
             # Create xarray DataArray
-            xarray = xr.DataArray(
+            """xarray = xr.DataArray(
                 np.array(mats), 
                 dims=["bootstrap_samples", "region1", "region2"],
                 coords={
@@ -139,7 +138,7 @@ for subject in subjects:
                     "condition_number": ("bootstrap_samples", condition_numbers)  # Adding as a coordinate
                 }
             )
-            xarray.to_netcdf(f'./dynsys/{subject}_array_dynsys_{condition}_alpha.nc')
+            xarray.to_netcdf(f'./dynsys/{subject}_array_dynsys_{condition}_alpha.nc')"""
 
     except Exception as e:
         print(f'failed on {subject}')

@@ -1,0 +1,5 @@
+-i
+pre_mri/sub-032304/ses-01/anat/denoised.nii
+-s
+sub-032304
+-all

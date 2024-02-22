@@ -1,0 +1,9 @@
+Logfile for pctsurfcon
+Mon Sep  4 19:41:03 EDT 2023
+setenv SUBJECTS_DIR /scratch/MPI-LEMON/freesurfer/subjects
+cd /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/scripts
+/scratch/MPI-LEMON/freesurfer/bin/pctsurfcon
+pctsurfcon 7.4.1
+Linux lina 5.15.0-82-generic #91-Ubuntu SMP Mon Aug 14 14:14:14 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux
+FREESURFER_HOME /scratch/MPI-LEMON/freesurfer
+Cleaning up

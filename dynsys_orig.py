@@ -2,6 +2,7 @@ import numpy as np
 import netCDF4 as nc
 import xarray as xr
 from scipy.stats import zscore
+from tqdm.auto import tqdm
 
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
@@ -30,7 +31,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
     condition_numbers = []
     mse = []
 
-    for k in range(len(epoch_dat)):
+    for k in tqdm(range(len(epoch_dat))):
         
         x = var_dat[:, :, k]
 
@@ -56,14 +57,12 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
         # Regressor generation
         phix_list = []
         for j in range(x.shape[1]):
-            for k in range(1, REGRESSOR_COUNT // 2 + 1):
-                # Generate sine and cosine terms for the k-th frequency
-                sin_terms = np.sin(k * x[:-1, j])
-                cos_terms = np.cos(k * x[:-1, j])
-
-                # Append the generated terms to the list of Fourier terms
-                phix_list.append(sin_terms)
-                phix_list.append(cos_terms)
+            for n in range(1, REGRESSOR_COUNT + 1):
+                if n % 2 == 1:  # For odd indices, use sine
+                    term = np.sin((n // 2 + 1) * x[:-1, j])
+                else:  # For even indices, use cosine
+                    term = np.cos((n // 2) * x[:-1, j])
+                phix_list.append(term)
 
         """sin_terms = np.sin(x[:-1, :])
         cos_terms = np.cos(x[:-1, :])

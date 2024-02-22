@@ -4,10 +4,9 @@ import xarray as xr
 from scipy.stats import zscore
 import pywt
 
-def normr(matrix):
-    row_norms = np.linalg.norm(matrix, axis=1)
-    normalized_matrix = matrix / row_norms[:, np.newaxis]
-    return normalized_matrix
+def apply_cwt(data, scales, wavelet_name='cmor'):
+    coefficients, _ = pywt.cwt(data, scales, wavelet_name, sampling_period=1)
+    return coefficients
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
     normalized_matrix = matrix / column_norms[np.newaxis, :]
@@ -47,29 +46,20 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
 
             
         y = np.array(y)
+        phix_list = []
+        # Define your scales, here just a simple range from 1 to REGRESSOR_COUNT for illustration
+        scales = np.arange(1, REGRESSOR_COUNT + 1)
+        for j in range(x.shape[1]):  # For each feature/channel
+            signal = x[:-1, j]  # Exclude the last observation for consistency with your example
+            for scale in scales:
+                # Perform Continuous Wavelet Transform at the given scale
+                coeffs, _ = pywt.cwt(signal, scales=scale, wavelet='morl', method='fft')
+                # coeffs will have shape (len(scales), len(signal)), we take the first (and only) scale here
+                phix_list.append(coeffs[0])  # Assuming scales has one scale at a time, coeffs[0] is the output
+        
+        phix_array = np.array(phix_list).T  # Transpose to align with your structure
+        phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])  # Adding the constant term
 
-        # Determine the actual number of decomposition levels for the first signal
-        # as an example to estimate levels for others
-        sample_coeffs = pywt.wavedec(x[:-1, 0], 'db4', mode='symmetric')
-        decomposition_level = len(sample_coeffs)  # Actual number of levels obtained
-
-        # Initialize storage for max length of each decomposition level and feature vectors
-        max_lengths = [0] * decomposition_level
-        all_features_by_level = [[] for _ in range(decomposition_level)]
-
-        for j in range(x.shape[1]):
-            coeffs = pywt.wavedec(x[:-1, j], 'db4', mode='symmetric', level=decomposition_level-1)
-            for level, coeff in enumerate(coeffs):
-                all_features_by_level[level].append(coeff)
-                max_lengths[level] = max(max_lengths[level], coeff.size)
-
-        # Pad coefficients within each level to their max length and stack them
-        padded_features = [np.vstack([np.pad(coeff, (0, max_len - coeff.size), 'constant')
-                                      for coeff in level_features])
-                           for level_features, max_len in zip(all_features_by_level, max_lengths)]
-
-        # Combine padded features from all levels
-        phix_list = np.hstack(padded_features)
 
         # Add an intercept term and prepare for regression
         phix = np.column_stack([np.ones((phix_list.shape[0], 1)), phix_list])
