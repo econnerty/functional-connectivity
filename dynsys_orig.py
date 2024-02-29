@@ -3,6 +3,7 @@ import netCDF4 as nc
 import xarray as xr
 from scipy.stats import zscore
 from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
 
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
@@ -12,48 +13,35 @@ def calculate_mse(y_actual, y_pred):
     residuals = y_actual - y_pred
     mse = np.mean(np.square(residuals))
     return mse
+def calculate_snr(y_actual, y_pred):
+    residuals = y_actual - y_pred
+    mse = np.mean(np.square(residuals))
+    snr = 10 * np.log10(np.mean(np.square(y_pred)) / mse)
+    return snr
 
-REGRESSOR_COUNT = 50
-def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
+
+REGRESSOR_COUNT = 25
+def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
-    #ds = xr.open_dataset('sub-032304_label_ts_EC.nc')
-    #time_dat = ds['time'].values
-    #var_dat = ds['__xarray_dataarray_variable__'].values
-    #epoch_dat = ds['epoch'].values
-    #region_dat = ds['region'].values
     var_dat = np.transpose(var_dat, (2, 1, 0))
-    #print(var_dat.shape)
-
-    #ts = 0.0025
 
     Coupling_strengths = []
     condition_numbers = []
     mse = []
+    snr = []
 
     for k in tqdm(range(len(epoch_dat))):
         
         x = var_dat[:, :, k]
 
         y = []
-
         # Inferring Interactions
-        #print(x.shape)
         for j in range(len(x[:,0]) - 1):
             y.append((x[j + 1, :] - x[j, :]) / sampling_time)
-
-        # Inferring Interactions
-        #y = (x[1:, :] - x[:-1, :])/sampling_time
-
             
         y = np.array(y)
-
-
-        # Inferring Interactions
-        #y = (x[1:, :] - x[:-1, :])/sampling_time
-
             
-        y = np.array(y)
         # Regressor generation
         phix_list = []
         for j in range(x.shape[1]):
@@ -63,14 +51,9 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
                 else:  # For even indices, use cosine
                     term = np.cos((n // 2) * x[:-1, j])
                 phix_list.append(term)
-
-        """sin_terms = np.sin(x[:-1, :])
-        cos_terms = np.cos(x[:-1, :])
-        sin2_terms = np.sin(2 * x[:-1, :])
-        cos2_terms = np.cos(2 * x[:-1, :])"""
-        
+        #print(len(phix_list[0]))
         phix_array = np.array(phix_list).T
-        #phix_array = np.array([sin_terms, cos_terms, sin2_terms, cos2_terms])
+        #print(phix_array.shape)
 
         phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
 
@@ -80,38 +63,45 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
         y_pred = phix @ W
         mse.append(calculate_mse(y, y_pred))
         condition_numbers.append(np.linalg.cond(phix))
-        #print(W.shape)
+        snr.append(calculate_snr(y, y_pred))
 
+        #Plot predictions vs actual
+        print(y_pred.shape)
+        plt.plot(y[:,0],label='Actual')
+        plt.plot(y_pred[:,0],label='Predicted')
+        plt.legend()
+        plt.savefig(f'./dynsys/{k}_dynsys_25.png')
+        plt.close()
+
+        #Plot the FFT of the predicted and actual
+        """plt.plot(np.abs(np.fft.fft(y[:,0])),label='Actual')
+        plt.plot(np.abs(np.fft.fft(y_pred[:,0])),label='Predicted')
+        plt.legend()
+        plt.savefig(f'./dynsys/{k}_dynsys_fft.png')
+        plt.close()"""
 
         L = []
         # Initialize G with zeros (or any other value you prefer)
-        #G = np.zeros((len(phix_list[1]), W.shape[1] - 1, x.shape[1]))
         for i in range(x.shape[1]):  # Assuming x is a 2D NumPy array
-            #f, g = decouple(i, W)  # Assuming decouple is a function defined similarly as above
             g = W[:, i]  # Copying to avoid modifying the original array
             # Remove the first element from g
             g = np.delete(g, 0)
             # Reshape g
             g = np.reshape(g, (REGRESSOR_COUNT, len(g) // REGRESSOR_COUNT))
-            #print(g.shape)
             gh_i = np.sqrt(np.sum(g ** 2, axis=0))
-
             #Change the ith element to a zero
             gh_i[i] = 0
-
-            #print(gh_i.shape)
-            #Gh.append(gh_i)
                 
             L.append(gh_i)
 
         # Convert lists to NumPy arrays for further calculations
-        #F = np.array(F)
-        #G = np.array(G)
-        #Gh = np.array(Gh)
-        L = np.array(L).T
+        L = np.array(L)
         Coupling_strengths.append(L)
 
-    Coupling_strengths = np.array(Coupling_strengths).T
-    Coupling_strengths = normc(Coupling_strengths.mean(2))
+    Coupling_strengths = np.array(Coupling_strengths)
+    print(Coupling_strengths.shape)
+    Coupling_strengths = normc(Coupling_strengths.mean(0))
 
-    return Coupling_strengths, np.mean(condition_numbers), np.mean(mse)
+
+
+    return Coupling_strengths, np.mean(condition_numbers), np.mean(mse),np.mean(snr)
