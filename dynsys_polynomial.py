@@ -21,7 +21,7 @@ def calculate_snr(y_actual, y_pred):
     return snr
 
 
-REGRESSOR_COUNT = 250
+REGRESSOR_COUNT = 25
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -47,10 +47,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         phix_list = []
         for j in range(x.shape[1]):
             for n in range(1, REGRESSOR_COUNT + 1):
-                if n % 2 == 1:  # For odd indices, use sine
-                    term = np.sin((n // 2 + 1) * x[:-1, j])
-                else:  # For even indices, use cosine
-                    term = np.cos((n // 2) * x[:-1, j])
+                term = np.power((x[:-1, j]),n)
                 phix_list.append(term)
         #print(len(phix_list[0]))
         phix_array = np.array(phix_list).T

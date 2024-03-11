@@ -16,7 +16,7 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_orig as dynsys
+import dynsys_polynomial as dynsys
 
 
 # In[2]:
@@ -111,7 +111,7 @@ for subject in subjects:
             condition_numbers = []
             mse = []
             snr = []
-            for i in range(10):
+            for i in range(1):
                 inds = np.random.choice(range(n),int(n/2),replace=False)
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
@@ -120,8 +120,8 @@ for subject in subjects:
                 mse.append(mse_temp)
                 condition_numbers.append(condition_number)
                 snr.append(snr_temp)
-                print(dynsys_mat)
-                print(dynsys_mat.shape)
+                #print(dynsys_mat)
+                #print(dynsys_mat.shape)
         
             region = [label.name for label in filtered_labels]
             #frequencies = list(frequencies[64:112])
