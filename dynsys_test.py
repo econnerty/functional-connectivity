@@ -16,7 +16,7 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_polynomial as dynsys
+import NN_test as dynsys
 
 
 # In[2]:
@@ -66,21 +66,40 @@ for subject in subjects:
             #Filter to alpha band
             raw.load_data()
             raw.filter(8,12)
+            raw.crop(tmin=0, tmax=8.0)
 
             info = raw.info
             fiducials = "estimated"
             coreg = Coregistration(info, subject, subjects_dir, fiducials=fiducials)
             
             conductivity = (0.3, 0.006, 0.3)
-            model = mne.make_bem_model(subject=subject, conductivity=conductivity, subjects_dir=subjects_dir)
-            bem = mne.make_bem_solution(model)
-            
-            epochs = mne.make_fixed_length_epochs(raw, duration=96.0, preload=False)
+
+            #If BEM surfaces exist
+            if Path(f'./fwd/{subject}_bemsurf_{condition}.fif').exists():
+                model = mne.read_bem_surfaces(f'./fwd/{subject}_bemsurf_{condition}.fif')
+            else:
+                model = mne.make_bem_model(subject=subject, conductivity=conductivity, subjects_dir=subjects_dir)
+                mne.write_bem_surfaces(f'./fwd/{subject}_bemsurf_{condition}.fif', model, overwrite=False, verbose=None)
+
+            if Path(f'./fwd/{subject}_bemsol_{condition}.fif').exists():
+                bem = mne.read_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif')
+            else:
+                bem = mne.make_bem_solution(model)
+                mne.write_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif', bem, overwrite=False, verbose=None)
+
+            epochs = mne.make_fixed_length_epochs(raw, duration=4.0, preload=False)
             epochs.set_eeg_reference(projection=True)
             epochs.apply_baseline((None,None))
-            fwd = mne.make_forward_solution(
-                epochs.info, trans=coreg.trans, src=src, bem=bem, verbose=True
-            )
+
+            #If forward solution exists
+            if Path(f'./fwd/{subject}_fwd_{condition}.fif').exists():
+                fwd = mne.read_forward_solution(f'./fwd/{subject}_fwd_{condition}.fif')
+            else:
+                fwd = mne.make_forward_solution(
+                    epochs.info, trans=coreg.trans, src=src, bem=bem, verbose=True
+                )
+                mne.write_forward_solution(f'./fwd/{subject}_fwd_{condition}.fif', fwd, overwrite=False, verbose=None)
+
             
             cov = mne.compute_covariance(epochs)
             
