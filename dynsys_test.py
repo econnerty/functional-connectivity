@@ -74,10 +74,21 @@ for subject in subjects:
             coreg = Coregistration(info, subject, subjects_dir, fiducials=fiducials)
             
             conductivity = (0.3, 0.006, 0.3)
-            model = mne.make_bem_model(subject=subject, conductivity=conductivity, subjects_dir=subjects_dir)
-            bem = mne.make_bem_solution(model)
-            
-            epochs = mne.make_fixed_length_epochs(raw, duration=96.0, preload=False)
+
+            #If BEM surfaces exist
+            if Path(f'./fwd/{subject}_bemsurf_{condition}.fif').exists():
+                model = mne.read_bem_surfaces(f'./fwd/{subject}_bemsurf_{condition}.fif')
+            else:
+                model = mne.make_bem_model(subject=subject, conductivity=conductivity, subjects_dir=subjects_dir)
+                mne.write_bem_surfaces(f'./fwd/{subject}_bemsurf_{condition}.fif', model, overwrite=False, verbose=None)
+
+            if Path(f'./fwd/{subject}_bemsol_{condition}.fif').exists():
+                bem = mne.read_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif')
+            else:
+                bem = mne.make_bem_solution(model)
+                mne.write_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif', bem, overwrite=False, verbose=None)
+
+            epochs = mne.make_fixed_length_epochs(raw, duration=4.0, preload=False)
             epochs.set_eeg_reference(projection=True)
             epochs.apply_baseline((None,None))
 
@@ -135,19 +146,9 @@ for subject in subjects:
             region = [label.name for label in filtered_labels]
             #frequencies = list(frequencies[64:112])
             bootstrap_samples = list(range(1))
-
-            #Average the mats
-            dynsys_mat = np.mean(np.array(mats), axis=0)
-
-            #Output adjacency matrix in seaborn
-            #output = sns.heatmap(dynsys_mat, xticklabels=region, yticklabels=region)
-            #output.get_figure().savefig(f'./dynsys/{subject}_dynsys_{condition}.png')
-            
-
-            #plt.savefig(f'./dynsys/{subject}_dynsys_{condition}.png')
-
-            print("CONDITION NUMBER:")
-            print(np.mean(condition_numbers))
+            print("CONDITION NUMBERS:")
+            print(condition_numbers)
+            print("END")
             print("MSE:")
             print(np.mean(mse))
             print("SNR:")
