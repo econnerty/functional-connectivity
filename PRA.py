@@ -1,13 +1,17 @@
+#Author: Erik Connerty
+#Date: 3/23/2024
+
+#Pairwise Reservoir Approximation
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import seaborn as sns   
 from tqdm.auto import tqdm
 
-
 # Manual ESN Implementation
 class SimpleESN:
-    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.1):
+    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.1,lag = -2):
         self.n_reservoir = n_reservoir
         self.spectral_radius = spectral_radius
         self.sparsity = sparsity
@@ -19,6 +23,7 @@ class SimpleESN:
         self.noise = noise
         self.alpha = alpha
         self.leaky_rate = leaky_rate
+        self.lag = lag
 
     def initialize_weights(self):
         # Internal weights
@@ -74,7 +79,7 @@ def train_and_evaluate_epoch(input_series, target_series):
     mse = np.mean((predictions - target_series)**2)
     return mse
 
-def compute_adjacency_matrix_for_epoch(epoch_data):
+def compute_adjacency_matrix_for_epoch(epoch_data,lag=-3):
     """
     Computes the adjacency matrix for a single epoch.
     """
@@ -84,16 +89,18 @@ def compute_adjacency_matrix_for_epoch(epoch_data):
 
     for i in range(n_series):
         for j in range(n_series):
-            if i != j:
-                # Example check before training
-                #print(epoch_data[i, :].shape)
+            if i == j:
                 mse_results[i, j] = train_and_evaluate_epoch(epoch_data[i, :, np.newaxis], epoch_data[j, :])
+            else:
+                #Time lag the data
+                mse_results[i, j] = train_and_evaluate_epoch(epoch_data[i, :, np.newaxis], np.roll(epoch_data[j, :], lag))
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
     adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
     return adjacency_matrix
 
-def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
+#Pairwise Reservoir Approximation
+def PRA(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Main process
     #var_dat = np.transpose(var_dat, (2, 1, 0))
     n_epochs = var_dat.shape[0]
@@ -112,5 +119,9 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     avg_adjacency_matrix = np.mean(np.array(all_adjacency_matrices), axis=0)
     #Min max normalize the matrix
     avg_adjacency_matrix = (avg_adjacency_matrix - np.min(avg_adjacency_matrix)) / (np.max(avg_adjacency_matrix) - np.min(avg_adjacency_matrix))
-    output = sns.heatmap(avg_adjacency_matrix, xticklabels=region_dat, yticklabels=region_dat)
-    output.get_figure().savefig(f'./dynsys/reservoir.png')
+
+    #Zeros out the diagonal
+    np.fill_diagonal(avg_adjacency_matrix, 0)
+    return avg_adjacency_matrix
+    #output = sns.heatmap(avg_adjacency_matrix, xticklabels=region_dat, yticklabels=region_dat)
+    #output.get_figure().savefig(f'./dynsys/reservoir.png')
