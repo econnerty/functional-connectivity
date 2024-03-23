@@ -152,7 +152,6 @@ for subject in subjects:
                     "bootstrap_samples": bootstrap_samples,
                     "region1": region, 
                     "region2": region,
-                    "condition_number": ("bootstrap_samples", condition_numbers)  # Adding as a coordinate
                 }
             )
             xarray.to_netcdf(f'./dynsys/{subject}_array_pra_{condition}_alpha.nc')
