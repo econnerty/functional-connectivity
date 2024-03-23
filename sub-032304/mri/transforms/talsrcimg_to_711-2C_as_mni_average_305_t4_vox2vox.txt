@@ -1,0 +1,7 @@
+# AZS
+# compute_vox2vox talsrcimg talsrcimg_to_711-2C_as_mni_average_305_t4 /scratch/MPI-LEMON/freesurfer/average/711-2C_as_mni_average_305
+# freesurfer compute_vox2vox.c
+  0.894060 -0.032150 -0.058796   20.7152
+  0.014171  0.872806 -0.249081   33.0979
+  0.064651  0.226110  0.930653  -24.9097
+  0.000000  0.000000  0.000000    1.0000

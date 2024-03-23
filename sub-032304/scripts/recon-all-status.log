@@ -1,0 +1,81 @@
+status file for recon-all
+Mon Sep  4 11:25:10 EDT 2023
+#@# MotionCor Mon Sep  4 11:25:21 EDT 2023
+#@# Talairach Mon Sep  4 11:25:37 EDT 2023
+#@# Talairach Failure Detection Mon Sep  4 11:32:30 EDT 2023
+#@# Nu Intensity Correction Mon Sep  4 11:32:30 EDT 2023
+#@# Intensity Normalization Mon Sep  4 11:39:39 EDT 2023
+#@# Skull Stripping Mon Sep  4 11:45:09 EDT 2023
+#@# EM Registration Mon Sep  4 12:19:30 EDT 2023
+#@# CA Normalize Mon Sep  4 12:49:13 EDT 2023
+#@# CA Reg Mon Sep  4 12:51:11 EDT 2023
+#@# SubCort Seg Mon Sep  4 16:21:05 EDT 2023
+#@# CC Seg Mon Sep  4 17:05:09 EDT 2023
+#@# Merge ASeg Mon Sep  4 17:06:02 EDT 2023
+#@# Intensity Normalization2 Mon Sep  4 17:06:02 EDT 2023
+#@# Mask BFS Mon Sep  4 17:08:54 EDT 2023
+#@# WM Segmentation Mon Sep  4 17:08:55 EDT 2023
+#@# Fill Mon Sep  4 17:11:43 EDT 2023
+#@# Tessellate lh Mon Sep  4 17:13:06 EDT 2023
+#@# Tessellate rh Mon Sep  4 17:13:12 EDT 2023
+#@# Smooth1 lh Mon Sep  4 17:13:18 EDT 2023
+#@# Smooth1 rh Mon Sep  4 17:13:21 EDT 2023
+#@# Inflation1 lh Mon Sep  4 17:13:25 EDT 2023
+#@# Inflation1 rh Mon Sep  4 17:13:49 EDT 2023
+#@# QSphere lh Mon Sep  4 17:14:13 EDT 2023
+#@# QSphere rh Mon Sep  4 17:16:49 EDT 2023
+#@# Fix Topology lh Mon Sep  4 17:19:27 EDT 2023
+#@# Fix Topology rh Mon Sep  4 17:21:49 EDT 2023
+#@# Smooth2 lh Mon Sep  4 17:48:44 EDT 2023
+#@# Smooth2 rh Mon Sep  4 17:48:48 EDT 2023
+#@# Inflation2 lh Mon Sep  4 17:48:52 EDT 2023
+#@# Inflation2 rh Mon Sep  4 17:49:24 EDT 2023
+#@# Curv .H and .K lh Mon Sep  4 17:49:55 EDT 2023
+#@# Curv .H and .K rh Mon Sep  4 17:50:57 EDT 2023
+#@# Sphere lh Mon Sep  4 17:52:00 EDT 2023
+#@# Sphere rh Mon Sep  4 18:02:35 EDT 2023
+#@# Surf Reg lh Mon Sep  4 18:33:58 EDT 2023
+#@# Surf Reg rh Mon Sep  4 18:43:38 EDT 2023
+#@# Jacobian white lh Mon Sep  4 19:03:01 EDT 2023
+#@# Jacobian white rh Mon Sep  4 19:03:03 EDT 2023
+#@# AvgCurv lh Mon Sep  4 19:03:04 EDT 2023
+#@# AvgCurv rh Mon Sep  4 19:03:05 EDT 2023
+#@# Cortical Parc lh Mon Sep  4 19:03:06 EDT 2023
+#@# Cortical Parc rh Mon Sep  4 19:03:20 EDT 2023
+#@# white curv lh Mon Sep  4 19:26:00 EDT 2023
+#@# white area lh Mon Sep  4 19:26:02 EDT 2023
+#@# pial curv lh Mon Sep  4 19:26:03 EDT 2023
+#@# pial area lh Mon Sep  4 19:26:06 EDT 2023
+#@# thickness lh Mon Sep  4 19:26:07 EDT 2023
+#@# area and vertex vol lh Mon Sep  4 19:26:46 EDT 2023
+#@# white curv rh Mon Sep  4 19:26:48 EDT 2023
+#@# white area rh Mon Sep  4 19:26:50 EDT 2023
+#@# pial curv rh Mon Sep  4 19:26:52 EDT 2023
+#@# pial area rh Mon Sep  4 19:26:54 EDT 2023
+#@# thickness rh Mon Sep  4 19:26:55 EDT 2023
+#@# area and vertex vol rh Mon Sep  4 19:27:34 EDT 2023
+#@# Curvature Stats lh Mon Sep  4 19:27:36 EDT 2023
+#@# Curvature Stats rh Mon Sep  4 19:27:39 EDT 2023
+#@# Cortical ribbon mask Mon Sep  4 19:27:43 EDT 2023
+#@# Cortical Parc 2 lh Mon Sep  4 19:39:59 EDT 2023
+#@# Cortical Parc 2 rh Mon Sep  4 19:40:17 EDT 2023
+#@# Cortical Parc 3 lh Mon Sep  4 19:40:35 EDT 2023
+#@# Cortical Parc 3 rh Mon Sep  4 19:40:49 EDT 2023
+#@# WM/GM Contrast lh Mon Sep  4 19:41:03 EDT 2023
+#@# WM/GM Contrast rh Mon Sep  4 19:41:08 EDT 2023
+#@# Relabel Hypointensities Mon Sep  4 19:41:13 EDT 2023
+#@# APas-to-ASeg Mon Sep  4 19:41:32 EDT 2023
+#@# AParc-to-ASeg aparc Mon Sep  4 19:41:57 EDT 2023
+#@# AParc-to-ASeg aparc.a2009s Mon Sep  4 19:45:21 EDT 2023
+#@# AParc-to-ASeg aparc.DKTatlas Mon Sep  4 19:48:35 EDT 2023
+#@# WMParc Mon Sep  4 19:51:41 EDT 2023
+#@# Parcellation Stats lh Mon Sep  4 20:00:02 EDT 2023
+#@# Parcellation Stats rh Mon Sep  4 20:00:39 EDT 2023
+#@# Parcellation Stats 2 lh Mon Sep  4 20:01:16 EDT 2023
+#@# Parcellation Stats 2 rh Mon Sep  4 20:01:35 EDT 2023
+#@# Parcellation Stats 3 lh Mon Sep  4 20:01:54 EDT 2023
+#@# Parcellation Stats 3 rh Mon Sep  4 20:02:13 EDT 2023
+#@# ASeg Stats Mon Sep  4 20:02:31 EDT 2023
+#@# BA_exvivo Labels lh Mon Sep  4 20:06:31 EDT 2023
+#@# BA_exvivo Labels rh Mon Sep  4 20:10:41 EDT 2023
+recon-all -s sub-032304 finished without error at Mon Sep  4 20:14:44 EDT 2023

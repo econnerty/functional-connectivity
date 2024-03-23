@@ -1,0 +1,1 @@
+mri_convert /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/rawavg.mgz /scratch/MPI-LEMON/freesurfer/subjects/sub-032304/mri/orig.mgz --conform

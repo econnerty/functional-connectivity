@@ -16,7 +16,8 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_orig as dynsys
+import dynsys_reservoir as dynsys
+import seaborn as sns
 
 
 # In[2]:
@@ -66,6 +67,7 @@ for subject in subjects:
             #Filter to alpha band
             raw.load_data()
             raw.filter(8,12)
+            raw.crop(tmin=0, tmax=8.0)
 
             info = raw.info
             fiducials = "estimated"
@@ -78,9 +80,16 @@ for subject in subjects:
             epochs = mne.make_fixed_length_epochs(raw, duration=96.0, preload=False)
             epochs.set_eeg_reference(projection=True)
             epochs.apply_baseline((None,None))
-            fwd = mne.make_forward_solution(
-                epochs.info, trans=coreg.trans, src=src, bem=bem, verbose=True
-            )
+
+            #If forward solution exists
+            if Path(f'./fwd/{subject}_fwd_{condition}.fif').exists():
+                fwd = mne.read_forward_solution(f'./fwd/{subject}_fwd_{condition}.fif')
+            else:
+                fwd = mne.make_forward_solution(
+                    epochs.info, trans=coreg.trans, src=src, bem=bem, verbose=True
+                )
+                mne.write_forward_solution(f'./fwd/{subject}_fwd_{condition}.fif', fwd, overwrite=False, verbose=None)
+
             
             cov = mne.compute_covariance(epochs)
             
@@ -110,26 +119,42 @@ for subject in subjects:
             mats=[]
             condition_numbers = []
             mse = []
+            snr = []
             for i in range(1):
                 inds = np.random.choice(range(n),int(n/2),replace=False)
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
-                dynsys_mat, condition_number,mse_temp = dynsys.dynSys(epoch_data[inds], epoch_idx, region, sampling_time=0.0025)
+                dynsys_mat, condition_number,mse_temp,snr_temp = dynsys.dynSys(epoch_data[inds], epoch_idx, region, sampling_time=0.004)
                 mats.append(dynsys_mat)
                 mse.append(mse_temp)
                 condition_numbers.append(condition_number)
+                snr.append(snr_temp)
+                #print(dynsys_mat)
+                #print(dynsys_mat.shape)
         
             region = [label.name for label in filtered_labels]
             #frequencies = list(frequencies[64:112])
             bootstrap_samples = list(range(1))
-            print("CONDITION NUMBERS:")
-            print(condition_numbers)
-            print("END")
+
+            #Average the mats
+            dynsys_mat = np.mean(np.array(mats), axis=0)
+
+            #Output adjacency matrix in seaborn
+            #output = sns.heatmap(dynsys_mat, xticklabels=region, yticklabels=region)
+            #output.get_figure().savefig(f'./dynsys/{subject}_dynsys_{condition}.png')
+            
+
+            #plt.savefig(f'./dynsys/{subject}_dynsys_{condition}.png')
+
+            print("CONDITION NUMBER:")
+            print(np.mean(condition_numbers))
             print("MSE:")
-            print(mse)
+            print(np.mean(mse))
+            print("SNR:")
+            print(np.mean(snr))
         
             # Create xarray DataArray
-            xarray = xr.DataArray(
+            """xarray = xr.DataArray(
                 np.array(mats), 
                 dims=["bootstrap_samples", "region1", "region2"],
                 coords={
@@ -139,7 +164,7 @@ for subject in subjects:
                     "condition_number": ("bootstrap_samples", condition_numbers)  # Adding as a coordinate
                 }
             )
-            xarray.to_netcdf(f'./dynsys/{subject}_array_dynsys_{condition}_alpha.nc')
+            xarray.to_netcdf(f'./dynsys/{subject}_array_dynsys_{condition}_alpha.nc')"""
 
     except Exception as e:
         print(f'failed on {subject}')

@@ -3,6 +3,7 @@ import netCDF4 as nc
 import xarray as xr
 from scipy.stats import zscore
 from scipy.special import eval_genlaguerre
+import cupy as cp
 
 REGRESSOR_COUNT = 50
 
@@ -11,7 +12,7 @@ def normc(matrix):
     normalized_matrix = matrix / column_norms[np.newaxis, :]
     return normalized_matrix
 def calculate_mse(y_actual, y_pred):
-    residuals = y_actual - y_pred
+    residuals = y_actual.get() - y_pred.get()
     mse = np.mean(np.square(residuals))
     return mse
 
@@ -44,7 +45,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
             y.append((x[j + 1, :] - x[j, :]) / sampling_time)
 
             
-        y = np.array(y)
+        y = cp.array(y)
 
         # Regressor generation
         phix_list = []
@@ -55,18 +56,19 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.0025):
                 phix_list.append(laguerre_poly)
 
         
-        phix_array = np.array(phix_list).T
+        phix_array = cp.array(phix_list).T
         #phix_array = np.array([sin_terms, cos_terms, sin2_terms, cos2_terms])
 
-        phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
+        phix = cp.column_stack([cp.ones((len(x) - 1, 1)), phix_array])
 
         # Fitting
-        inverse = np.linalg.pinv(phix)
+        inverse = cp.linalg.pinv(phix)
         W = inverse @ y
         y_pred = phix @ W
-        mse.append(calculate_mse(y, y_pred))
-        condition_numbers.append(np.linalg.cond(phix))
-        #print(W.shape)
+        mse.append(calculate_mse(y, y_pred))  # Ensure calculate_mse can operate on CuPy arrays
+        condition_numbers.append(np.linalg.cond(phix.get()))
+        #Convert back to numpy
+        W = W.get()
 
 
         L = []
