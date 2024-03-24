@@ -79,7 +79,7 @@ def train_and_evaluate_epoch(input_series, target_series):
     mse = np.mean((predictions - target_series)**2)
     return mse
 
-def compute_adjacency_matrix_for_epoch(epoch_data,lag=-3):
+def compute_adjacency_matrix_for_epoch(epoch_data,lag=0):
     """
     Computes the adjacency matrix for a single epoch.
     """
@@ -96,6 +96,9 @@ def compute_adjacency_matrix_for_epoch(epoch_data,lag=-3):
                 mse_results[i, j] = train_and_evaluate_epoch(epoch_data[i, :, np.newaxis], np.roll(epoch_data[j, :], lag))
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
+    
+    #Replace zeros with 0.01 to avoid divide by zero
+    mse_results = np.where(mse_results == 0, 0.1, mse_results)
     adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
     return adjacency_matrix
 

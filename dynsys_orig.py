@@ -23,7 +23,7 @@ def calculate_snr(y_actual, y_pred):
     return snr
 
 
-REGRESSOR_COUNT = 250
+REGRESSOR_COUNT = 25
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -101,6 +101,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
             # Reshape g
             g = np.reshape(g, (REGRESSOR_COUNT, len(g) // REGRESSOR_COUNT))
             gh_i = np.sqrt(np.sum(g ** 2, axis=0))
+            #print(gh_i)
             #Change the ith element to a zero
             
             #gh_i[i] = 0
@@ -117,6 +118,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     #Min max normalize the array
     Coupling_strengths = (Coupling_strengths - Coupling_strengths.min()) / (Coupling_strengths.max() - Coupling_strengths.min())
     #Zero out the diagonal
+    #print(Coupling_strengths)
     np.fill_diagonal(Coupling_strengths, 0)
 
 

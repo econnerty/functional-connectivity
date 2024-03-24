@@ -16,7 +16,7 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_original as dynsys
+import dynsys_orig as dynsys
 import seaborn as sns
 
 
