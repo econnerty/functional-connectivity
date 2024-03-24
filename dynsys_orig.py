@@ -102,7 +102,8 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
             g = np.reshape(g, (REGRESSOR_COUNT, len(g) // REGRESSOR_COUNT))
             gh_i = np.sqrt(np.sum(g ** 2, axis=0))
             #Change the ith element to a zero
-            gh_i[i] = 0
+            
+            #gh_i[i] = 0
                 
             L.append(gh_i)
 
@@ -113,6 +114,10 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     Coupling_strengths = np.array(Coupling_strengths)
     #print(Coupling_strengths.shape)
     Coupling_strengths = normc(Coupling_strengths.mean(0))
+    #Min max normalize the array
+    Coupling_strengths = (Coupling_strengths - Coupling_strengths.min()) / (Coupling_strengths.max() - Coupling_strengths.min())
+    #Zero out the diagonal
+    np.fill_diagonal(Coupling_strengths, 0)
 
 
 
