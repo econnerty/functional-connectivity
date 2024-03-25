@@ -5,6 +5,7 @@
 
 
 import mne
+import concurrent.futures
 from mne.coreg import Coregistration
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 import numpy as np
@@ -12,12 +13,10 @@ from pathlib import Path
 import pandas as pd
 import os
 from pathlib import Path
-from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
 import PRA as pra
-import seaborn as sns
 
 
 # In[2]:
@@ -44,62 +43,43 @@ def filter_labels_with_vertices(labels_parc, src):
 # In[6]:
 
 
-#subjects = [subject for subject in os.listdir('/work/erikc/inspected') if subject.startswith('sub')]
-#subjects_dir = "/work/erikc/inspected"
-subjects = ['sub-032304']
-subjects_dir = '~/Code/functional connectivity/'
-conditions = ['EC']
-eeg_dir = '~/Code/functional connectivity/eeg'
-#eeg_dir = '/work/erikc/eeg'
+subjects = [subject for subject in os.listdir('/work/erikc/inspected') if subject.startswith('sub')]
+subjects_dir = "/work/erikc/inspected"
+#subjects = ['sub-032304']
+#subjects_dir = '~/Code/functional_connectivity/'
+conditions = ['EC','EO']
+#eeg_dir = '~/Code/functional_connectivity/eeg'
+eeg_dir = '/work/erikc/eeg'
 
 
 # In[36]:
 
 
 start_time = time.time()
-
-for subject in subjects:
-    try:
-        for condition in conditions:
+def process_subject(subject, subjects_dir, eeg_dir, conditions):
+    for condition in conditions:
+        try:
             src = mne.setup_source_space(subject, add_dist="patch", subjects_dir=subjects_dir)
             raw = mne.io.read_raw_eeglab(f"{eeg_dir}/{subject}/{subject}_{condition}.set")
 
             #Filter to alpha band
             raw.load_data()
             raw.filter(8,12)
-
+            
             info = raw.info
             fiducials = "estimated"
             coreg = Coregistration(info, subject, subjects_dir, fiducials=fiducials)
             
             conductivity = (0.3, 0.006, 0.3)
-
-            #If BEM surfaces exist
-            if Path(f'./fwd/{subject}_bemsurf_{condition}.fif').exists():
-                model = mne.read_bem_surfaces(f'./fwd/{subject}_bemsurf_{condition}.fif')
-            else:
-                model = mne.make_bem_model(subject=subject, conductivity=conductivity, subjects_dir=subjects_dir)
-                mne.write_bem_surfaces(f'./fwd/{subject}_bemsurf_{condition}.fif', model, overwrite=False, verbose=None)
-
-            if Path(f'./fwd/{subject}_bemsol_{condition}.fif').exists():
-                bem = mne.read_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif')
-            else:
-                bem = mne.make_bem_solution(model)
-                mne.write_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif', bem, overwrite=False, verbose=None)
-
+            model = mne.make_bem_model(subject=subject, conductivity=conductivity, subjects_dir=subjects_dir)
+            bem = mne.make_bem_solution(model)
+            
             epochs = mne.make_fixed_length_epochs(raw, duration=12.0, preload=False)
             epochs.set_eeg_reference(projection=True)
             epochs.apply_baseline((None,None))
-
-            #If forward solution exists
-            if Path(f'./fwd/{subject}_fwd_{condition}.fif').exists():
-                fwd = mne.read_forward_solution(f'./fwd/{subject}_fwd_{condition}.fif')
-            else:
-                fwd = mne.make_forward_solution(
-                    epochs.info, trans=coreg.trans, src=src, bem=bem, verbose=True
-                )
-                mne.write_forward_solution(f'./fwd/{subject}_fwd_{condition}.fif', fwd, overwrite=False, verbose=None)
-
+            fwd = mne.make_forward_solution(
+                epochs.info, trans=coreg.trans, src=src, bem=bem, verbose=True
+            )
             
             cov = mne.compute_covariance(epochs)
             
@@ -128,41 +108,35 @@ for subject in subjects:
         
             mats=[]
             condition_numbers = []
-            mse = []
-            snr = []
             for i in range(100):
                 inds = np.random.choice(range(n),int(n/2),replace=False)
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
-                dynsys_mat = pra.PRA(epoch_data[inds], epoch_idx, region, sampling_time=0.004)
+                dynsys_mat = pra.PRA(epoch_data[inds], epoch_idx, region, sampling_time=0.0025)
                 mats.append(dynsys_mat)
-                #print(dynsys_mat)
-                #print(dynsys_mat.shape)
+                #condition_numbers.append(condition_number)
         
             region = [label.name for label in filtered_labels]
-            #frequencies = list(frequencies[64:112])
             bootstrap_samples = list(range(100))
         
-            # Create xarray DataArray
-            xarray = xr.DataArray(
-                np.array(mats), 
-                dims=["bootstrap_samples", "region1", "region2"],
-                coords={
-                    "bootstrap_samples": bootstrap_samples,
-                    "region1": region, 
-                    "region2": region,
-                }
-            )
-            xarray.to_netcdf(f'./dynsys/{subject}_array_pra_{condition}_alpha.nc')
-
-    except Exception as e:
-        print(f'failed on {subject}')
-        print(e)
-        continue
-#print(time.time()-start_time)
+            xarray = xr.DataArray(np.array(mats), dims=["bootstrap_samples","region1","region2"],
+            coords={"bootstrap_samples":bootstrap_samples,"region1":region, "region2":region})
+            xarray.to_netcdf(f'./PRA/{subject}_array_PRA_{condition}_alpha_stability.nc')
+        except Exception as e:
+            print(f'failed on {subject}')
+            print(e)
 
 
-# In[ ]:
+if __name__ == "__main__":
+
+    start_time = time.time()
+
+    # Use ProcessPoolExecutor to parallelize the processing
+    with concurrent.futures.ProcessPoolExecutor(max_workers=6) as executor:
+        # Map the process_subject function to all subjects
+        futures = [executor.submit(process_subject, subject, subjects_dir, eeg_dir, conditions) for subject in subjects]
+
+    print(time.time() - start_time)
 
 
 

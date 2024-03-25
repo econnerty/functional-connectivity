@@ -44,63 +44,67 @@ class SimpleESN:
 
     def train(self, inputs, outputs):
          # Initialize weights
-        self.initialize_weights()
+        #self.initialize_weights()
         
         # Collect states for training
         states = []
         for input in inputs:
             self.update_state(input)
             states.append(self.state.copy())
-            """if np.isnan(self.state).any():
-                print("nan in state")
-                self.state = np.zeros(self.n_reservoir)"""
-        
-        # Train the readout layer
-        reg = LinearRegression()
-        reg.fit(states, outputs)
-        self.W_out = reg.coef_
     
     def predict(self, inputs):
-        states = []
-        for input in inputs:
-            self.update_state(input)
-            states.append(self.state.copy())
-        
-        return np.dot(states, self.W_out.T)
+        return np.dot(inputs, self.W_out.T)
+    
 
-# Function to train an ESN and calculate MSE for a given input-output pair
-def train_and_evaluate_epoch(input_series, target_series):
+def train_and_evaluate_with_states(esn, input_states, target_series):
     """
-    Trains an ESN for a single epoch and computes the MSE.
+    Trains an ESN with precomputed input and target states, then computes the MSE.
     """
-    esn = SimpleESN(n_reservoir=20, spectral_radius=1.2, sparsity=0.3)
-    esn.train(input_series, target_series)
-    predictions = esn.predict(input_series).flatten()
-    mse = np.mean((predictions - target_series)**2)
+    # Train the readout layer with input states and target series
+
+    reg = LinearRegression()
+    reg.fit(input_states, target_series)
+    esn.W_out = reg.coef_
+
+    # Predict using the target states and compute MSE
+    predictions = esn.predict(input_states).flatten()
+    mse = np.mean((predictions - target_series) ** 2)
     return mse
 
-def compute_adjacency_matrix_for_epoch(epoch_data,lag=0):
+
+def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
     """
-    Computes the adjacency matrix for a single epoch.
+    Computes the adjacency matrix for a single epoch, optimizing by calculating
+    reservoir states only once for each 'i' in the outer loop, and reusing these states
+    for all 'j' comparisons.
     """
     n_series = epoch_data.shape[0]  # Number of time series
-    #print(n_series)
     mse_results = np.zeros((n_series, n_series))
 
+    # Initialize the ESN instance
+    esn = SimpleESN(n_reservoir=100, spectral_radius=1.2, sparsity=0.3)
+    esn.initialize_weights()  # Initialize weights once at the start
+
     for i in range(n_series):
+        esn.state = np.zeros(esn.n_reservoir)  # Reset state only here, at the start of each 'i' loop
+
+        # Collect states for the 'i' series
+        input_states_i = []
+        for input_val in epoch_data[i, :, np.newaxis]:
+            esn.update_state(input_val)
+            input_states_i.append(esn.state.copy())
+
         for j in range(n_series):
-            if i == j:
-                mse_results[i, j] = train_and_evaluate_epoch(epoch_data[i, :, np.newaxis], epoch_data[j, :])
-            else:
-                #Time lag the data
-                mse_results[i, j] = train_and_evaluate_epoch(epoch_data[i, :, np.newaxis], np.roll(epoch_data[j, :], lag))
+            target_series = epoch_data[j, :]
+                
+            #target_series = np.roll(epoch_data[j, :], lag)
+            mse_results[i, j] = train_and_evaluate_with_states(esn, input_states_i, target_series)
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
-    
-    #Replace zeros with 0.01 to avoid divide by zero
     mse_results = np.where(mse_results == 0, 0.1, mse_results)
     adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
     return adjacency_matrix
+
 
 #Pairwise Reservoir Approximation
 def PRA(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
