@@ -11,7 +11,7 @@ from tqdm.auto import tqdm
 
 # Manual ESN Implementation
 class SimpleESN:
-    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.1,lag = -2):
+    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.5,lag = -2):
         self.n_reservoir = n_reservoir
         self.spectral_radius = spectral_radius
         self.sparsity = sparsity
@@ -82,7 +82,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
     mse_results = np.zeros((n_series, n_series))
 
     # Initialize the ESN instance
-    esn = SimpleESN(n_reservoir=100, spectral_radius=1.2, sparsity=0.3)
+    esn = SimpleESN(n_reservoir=100, spectral_radius=1.0, sparsity=0.3)
     esn.initialize_weights()  # Initialize weights once at the start
 
     for i in range(n_series):
@@ -101,7 +101,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
             mse_results[i, j] = train_and_evaluate_with_states(esn, input_states_i, target_series)
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
-    mse_results = np.where(mse_results == 0, 0.1, mse_results)
+    mse_results = np.where(mse_results == 0, 1.0, mse_results)
     adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
     return adjacency_matrix
 
@@ -128,7 +128,7 @@ def PRA(var_dat=None):
     avg_adjacency_matrix = (avg_adjacency_matrix - np.min(avg_adjacency_matrix)) / (np.max(avg_adjacency_matrix) - np.min(avg_adjacency_matrix))
 
     #Zeros out the diagonal
-    np.fill_diagonal(avg_adjacency_matrix, 0)
+    #np.fill_diagonal(avg_adjacency_matrix, 0)
     return avg_adjacency_matrix
     #output = sns.heatmap(avg_adjacency_matrix, xticklabels=region_dat, yticklabels=region_dat)
     #output.get_figure().savefig(f'./dynsys/reservoir.png')
