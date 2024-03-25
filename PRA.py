@@ -107,7 +107,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
 
 
 #Pairwise Reservoir Approximation
-def PRA(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
+def PRA(var_dat=None):
     # Main process
     #var_dat = np.transpose(var_dat, (2, 1, 0))
     n_epochs = var_dat.shape[0]

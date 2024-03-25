@@ -134,7 +134,7 @@ for subject in subjects:
                 inds = np.random.choice(range(n),int(n/2),replace=False)
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
-                dynsys_mat = pra.PRA(epoch_data[inds], epoch_idx, region, sampling_time=0.004)
+                dynsys_mat = pra.PRA(epoch_data[inds])
                 mats.append(dynsys_mat)
                 #print(dynsys_mat)
                 #print(dynsys_mat.shape)
