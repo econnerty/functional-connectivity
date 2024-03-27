@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spilu
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spilu
+from scipy.integrate import solve_ivp
 
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
@@ -55,8 +56,58 @@ def integrate_and_plot(y_pred, x, sampling_time):
             ax.axis('off')
     plt.title('Approximated Integral of the Time Series Data')
     plt.tight_layout()
-    plt.savefig('./dynsys/approximated_integral_10.png')
-REGRESSOR_COUNT = 10
+    plt.savefig('./dynsys/approximated_integral_rc_25.png')
+    exit()
+
+
+# Manual ESN Implementation
+class SimpleESN:
+    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.5,lag = -2):
+        self.n_reservoir = n_reservoir
+        self.spectral_radius = spectral_radius
+        self.sparsity = sparsity
+        self.state = np.zeros(n_reservoir)
+        self.W = None
+        self.W_in = None
+        self.W_out = None
+        self.rho = rho
+        self.noise = noise
+        self.alpha = alpha
+        self.leaky_rate = leaky_rate
+        self.lag = lag
+
+    def initialize_weights(self):
+        # Internal weights
+        W = np.random.rand(self.n_reservoir, self.n_reservoir) - 0.5
+        # Set sparsity
+        W[np.random.rand(*W.shape) > self.sparsity] = 0
+        # Scale weights to have the desired spectral radius
+        radius = np.max(np.abs(np.linalg.eigvals(W)))
+        self.W = W * (self.spectral_radius / radius)
+        # Input weights
+        self.W_in = np.random.rand(self.n_reservoir, 1) * 2 - 1
+
+    def update_state(self, input):
+        pre_activation = np.dot(self.W, self.state) + np.dot(self.W_in, input)
+        updated_state = np.tanh(pre_activation)
+        self.state = self.leaky_rate * updated_state + (1 - self.leaky_rate) * self.state
+
+
+    def train(self, inputs):
+         # Initialize weights
+        #self.initialize_weights()
+        
+        # Collect states for training
+        states = []
+        for input in inputs:
+            self.update_state(input)
+            states.append(self.state.copy())
+    
+    def predict(self, inputs):
+        return np.dot(inputs, self.W_out.T)
+
+
+NUMBER_OF_NODES = 25
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -71,60 +122,50 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         
         x = var_dat[:, :, k]
 
-
         y = []
         # Inferring Interactions
         for j in range(len(x[:,0]) - 1):
             y.append((x[j + 1, :] - x[j, :]) / sampling_time)
             
         y = np.array(y)
-            
-        # Regressor generation
-        phix_list = []
-        for j in range(x.shape[1]):
-            for n in range(1, REGRESSOR_COUNT + 1):
-                if n % 2 == 1:  # For odd indices, use sine
-                    term = np.sin((n // 2 + 1) * x[:-1, j])
-                else:  # For even indices, use cosine
-                    term = np.cos((n // 2) * x[:-1, j])
-                phix_list.append(term)
-        #print(len(phix_list[0]))
-        phix_array = np.array(phix_list).T
-        #print(phix_array.shape)
 
-        phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
+        # Initialize a list to store reservoir states for each time series
+        all_states = []
+        
+        for j in range(x.shape[1]):  # Iterate over each time series
+            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.3)
+            esn.initialize_weights()
 
-        #SVD Preconditioning
-        U, s, Vt = np.linalg.svd(phix, full_matrices=False)
-        # Regularize small singular values
-        threshold = 10.0
-        s_reg = np.array([max(x, threshold) for x in s])  # Regularize singular values
-        S_reg = np.diag(s_reg)  # Construct a diagonal matrix with the regularized singular values
-        phix = np.dot(U, np.dot(S_reg, Vt))  # Reconstruct the modified matrix
+            single_series_data = x[:-1, j]
+
+            # Collect states for the current time series
+            states = []
+            for input_val in single_series_data:
+                esn.update_state([input_val])  # Ensure input_val is in the expected shape, e.g., [input_val] or [[input_val]]
+                states.append(esn.state.copy())
+
+            all_states.append(np.array(states))
+
+        # Reshape and concatenate states
+        # Each item in all_states is of shape [time_points, n_reservoir], so stack along the second dimension
+        phix = np.hstack(all_states)  # This forms a matrix of shape [time_points, n_reservoir*num_series]
+        
+        # Add bias term
+        phix = np.column_stack([np.ones((phix.shape[0], 1)), phix])
+        
+        # Ensure x is in the correct shape
+        #y = x.reshape(-1, x.shape[1])  # Assuming you want to predict all series at once
 
         # Fitting
         inverse = np.linalg.pinv(phix)
         W = inverse @ y
         y_pred = phix @ W
+        #print(W.shape)
         mse.append(calculate_mse(y, y_pred))
         condition_numbers.append(np.linalg.cond(phix))
         snr.append(calculate_snr(y, y_pred))
 
-        #Plot predictions vs actual
-        #print(y_pred.shape)
-        """plt.plot(y[:,0],label='Actual')
-        plt.plot(y_pred[:,0],label='Predicted')
-        plt.legend()
-        plt.savefig(f'./dynsys/{k}_dynsys_4.png')
-        plt.close()"""
         #integrate_and_plot(y_pred, x, sampling_time)
-
-        #Plot the FFT of the predicted and actual
-        """plt.plot(np.abs(np.fft.fft(y[:,0])),label='Actual')
-        plt.plot(np.abs(np.fft.fft(y_pred[:,0])),label='Predicted')
-        plt.legend()
-        plt.savefig(f'./dynsys/{k}_dynsys_fft.png')
-        plt.close()"""
 
         L = []
         # Initialize G with zeros (or any other value you prefer)
@@ -133,12 +174,11 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
             # Remove the first element from g
             g = np.delete(g, 0)
             # Reshape g
-            g = np.reshape(g, (REGRESSOR_COUNT, len(g) // REGRESSOR_COUNT))
+            g = np.reshape(g, (NUMBER_OF_NODES, len(g) // NUMBER_OF_NODES))
             gh_i = np.sqrt(np.sum(g ** 2, axis=0))
             #print(gh_i)
             #Change the ith element to a zero
-            
-            #gh_i[i] = 0
+            gh_i[i] = 0
                 
             L.append(gh_i)
 

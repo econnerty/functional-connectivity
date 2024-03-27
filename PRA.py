@@ -101,7 +101,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
             mse_results[i, j] = train_and_evaluate_with_states(esn, input_states_i, target_series)
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
-    mse_results = np.where(mse_results == 0, 1.0, mse_results)
+    mse_results = np.where(mse_results == 0, .01, mse_results)
     adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
     return adjacency_matrix
 
