@@ -16,7 +16,8 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_reservoir as dynsys
+import dynsys_orig as dynsys
+import PRA as pra
 import seaborn as sns
 
 
@@ -54,7 +55,7 @@ eeg_dir = '~/Code/functional connectivity/eeg'
 
 
 # In[36]:
-
+BOOTSTRAP_SAMPLES = 25
 
 start_time = time.time()
 
@@ -88,7 +89,7 @@ for subject in subjects:
                 bem = mne.make_bem_solution(model)
                 mne.write_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif', bem, overwrite=False, verbose=None)
 
-            epochs = mne.make_fixed_length_epochs(raw, duration=24.0, preload=False)
+            epochs = mne.make_fixed_length_epochs(raw, duration=18.0, preload=False)
             epochs.set_eeg_reference(projection=True)
             epochs.apply_baseline((None,None))
 
@@ -131,28 +132,29 @@ for subject in subjects:
             condition_numbers = []
             mse = []
             snr = []
-            for i in range(100):
+            for i in range(BOOTSTRAP_SAMPLES):
                 inds = np.random.choice(range(n),int(n/2),replace=False)
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
-                dynsys_mat, condition_number,mse_temp,snr_temp = dynsys.dynSys(epoch_data[inds], epoch_idx, region, sampling_time=0.004)
+                #dynsys_mat, condition_number,mse_temp,snr_temp = dynsys.dynSys(epoch_data[inds], epoch_idx, region, sampling_time=0.004)
+                dynsys_mat = pra.PRA(epoch_data[inds])
                 mats.append(dynsys_mat)
-                mse.append(mse_temp)
-                condition_numbers.append(condition_number)
-                snr.append(snr_temp)
+                #mse.append(mse_temp)
+                #condition_numbers.append(condition_number)
+                #snr.append(snr_temp)
                 #print(dynsys_mat)
                 #print(dynsys_mat.shape)
         
             region = [label.name for label in filtered_labels]
             #frequencies = list(frequencies[64:112])
-            bootstrap_samples = list(range(100))
-            print("CONDITION NUMBERS:")
+            bootstrap_samples = list(range(BOOTSTRAP_SAMPLES))
+            """print("CONDITION NUMBERS:")
             print(np.mean(condition_numbers))
             print("END")
             print("MSE:")
             print(np.mean(mse))
             print("SNR:")
-            print(np.mean(snr))
+            print(np.mean(snr))"""
         
             # Create xarray DataArray
             xarray = xr.DataArray(
@@ -161,11 +163,10 @@ for subject in subjects:
                 coords={
                     "bootstrap_samples": bootstrap_samples,
                     "region1": region, 
-                    "region2": region,
-                    "condition_number": ("bootstrap_samples", condition_numbers)  # Adding as a coordinate
+                    "region2": region
                 }
             )
-            xarray.to_netcdf(f'./dynsys/{subject}_array_dynsys_r2_{condition}_alpha.nc')
+            xarray.to_netcdf(f'./dynsys/{subject}_array_pra_25_{condition}_alpha.nc')
 
     except Exception as e:
         print(f'failed on {subject}')

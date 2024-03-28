@@ -55,8 +55,8 @@ def integrate_and_plot(y_pred, x, sampling_time):
             ax.axis('off')
     plt.title('Approximated Integral of the Time Series Data')
     plt.tight_layout()
-    plt.savefig('./dynsys/approximated_integral_10.png')
-REGRESSOR_COUNT = 10
+    plt.savefig(f'./dynsys/approximated_integral_{REGRESSOR_COUNT}_sin.png')
+REGRESSOR_COUNT = 50
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -67,7 +67,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     mse = []
     snr = []
 
-    for k in tqdm(range(len(epoch_dat))):
+    for k in tqdm(range(var_dat.shape[2])):
         
         x = var_dat[:, :, k]
 
@@ -95,12 +95,12 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
 
         #SVD Preconditioning
-        U, s, Vt = np.linalg.svd(phix, full_matrices=False)
+        #U, s, Vt = np.linalg.svd(phix, full_matrices=False)
         # Regularize small singular values
-        threshold = 10.0
+        """threshold = 10.0
         s_reg = np.array([max(x, threshold) for x in s])  # Regularize singular values
         S_reg = np.diag(s_reg)  # Construct a diagonal matrix with the regularized singular values
-        phix = np.dot(U, np.dot(S_reg, Vt))  # Reconstruct the modified matrix
+        phix = np.dot(U, np.dot(S_reg, Vt))  # Reconstruct the modified matrix"""
 
         # Fitting
         inverse = np.linalg.pinv(phix)
@@ -115,9 +115,9 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         """plt.plot(y[:,0],label='Actual')
         plt.plot(y_pred[:,0],label='Predicted')
         plt.legend()
-        plt.savefig(f'./dynsys/{k}_dynsys_4.png')
-        plt.close()"""
-        #integrate_and_plot(y_pred, x, sampling_time)
+        plt.savefig(f'./dynsys/{k}_dynsys_{REGRESSOR_COUNT}_{mse}.png')
+        plt.close()
+        integrate_and_plot(y_pred, x, sampling_time)"""
 
         #Plot the FFT of the predicted and actual
         """plt.plot(np.abs(np.fft.fft(y[:,0])),label='Actual')

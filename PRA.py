@@ -69,7 +69,12 @@ def train_and_evaluate_with_states(esn, input_states, target_series):
     # Predict using the target states and compute MSE
     predictions = esn.predict(input_states).flatten()
     mse = np.mean((predictions - target_series) ** 2)
-    return mse
+
+    #Get signal to noise ratio
+    if mse <= 1e-10:
+        mse = 1e-10
+    snr = np.mean(target_series ** 2) / mse
+    return snr
 
 
 def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
@@ -82,7 +87,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
     mse_results = np.zeros((n_series, n_series))
 
     # Initialize the ESN instance
-    esn = SimpleESN(n_reservoir=100, spectral_radius=1.0, sparsity=0.3)
+    esn = SimpleESN(n_reservoir=25, spectral_radius=1.0, sparsity=0.3)
     esn.initialize_weights()  # Initialize weights once at the start
 
     for i in range(n_series):
@@ -101,9 +106,9 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
             mse_results[i, j] = train_and_evaluate_with_states(esn, input_states_i, target_series)
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
-    mse_results = np.where(mse_results == 0, .01, mse_results)
-    adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
-    return adjacency_matrix
+    #mse_results = np.where(mse_results < 1e-10, 1e-10, mse_results)
+    #adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
+    return mse_results
 
 
 #Pairwise Reservoir Approximation
@@ -124,6 +129,12 @@ def PRA(var_dat=None):
 
     # Average the adjacency matrices across all epochs
     avg_adjacency_matrix = np.mean(np.array(all_adjacency_matrices), axis=0)
+
+    #Multiply each column by the value of that columns diagonal
+    for i in range(avg_adjacency_matrix.shape[0]):
+        avg_adjacency_matrix[:,i] = avg_adjacency_matrix[:,i] * avg_adjacency_matrix[i,i]
+
+    np.fill_diagonal(avg_adjacency_matrix, 0)
     #Min max normalize the matrix
     avg_adjacency_matrix = (avg_adjacency_matrix - np.min(avg_adjacency_matrix)) / (np.max(avg_adjacency_matrix) - np.min(avg_adjacency_matrix))
 

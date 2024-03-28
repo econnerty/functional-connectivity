@@ -13,6 +13,11 @@ def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
     normalized_matrix = matrix / column_norms[np.newaxis, :]
     return normalized_matrix
+
+def normr(matrix):
+    row_norms = np.linalg.norm(matrix, axis=1)
+    normalized_matrix = matrix / row_norms[:, np.newaxis]
+    return normalized_matrix
 def calculate_mse(y_actual, y_pred):
     residuals = y_actual - y_pred
     mse = np.mean(np.square(residuals))
@@ -56,13 +61,12 @@ def integrate_and_plot(y_pred, x, sampling_time):
             ax.axis('off')
     plt.title('Approximated Integral of the Time Series Data')
     plt.tight_layout()
-    plt.savefig('./dynsys/approximated_integral_rc_25.png')
-    exit()
+    plt.show()
 
 
 # Manual ESN Implementation
 class SimpleESN:
-    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.5,lag = -2):
+    def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.1,lag = -2):
         self.n_reservoir = n_reservoir
         self.spectral_radius = spectral_radius
         self.sparsity = sparsity
@@ -87,6 +91,7 @@ class SimpleESN:
         # Input weights
         self.W_in = np.random.rand(self.n_reservoir, 1) * 2 - 1
 
+
     def update_state(self, input):
         pre_activation = np.dot(self.W, self.state) + np.dot(self.W_in, input)
         updated_state = np.tanh(pre_activation)
@@ -107,7 +112,7 @@ class SimpleESN:
         return np.dot(inputs, self.W_out.T)
 
 
-NUMBER_OF_NODES = 25
+NUMBER_OF_NODES = 50
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -118,7 +123,8 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     mse = []
     snr = []
 
-    for k in tqdm(range(len(epoch_dat))):
+
+    for k in tqdm(range(var_dat.shape[2])):
         
         x = var_dat[:, :, k]
 
@@ -128,15 +134,17 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
             y.append((x[j + 1, :] - x[j, :]) / sampling_time)
             
         y = np.array(y)
+        #y = x
 
         # Initialize a list to store reservoir states for each time series
         all_states = []
         
         for j in range(x.shape[1]):  # Iterate over each time series
-            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.3)
+            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.8,leaky_rate=0.5)
             esn.initialize_weights()
 
             single_series_data = x[:-1, j]
+            #single_series_data = x[:, j]
 
             # Collect states for the current time series
             states = []
@@ -152,19 +160,24 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         
         # Add bias term
         phix = np.column_stack([np.ones((phix.shape[0], 1)), phix])
-        
-        # Ensure x is in the correct shape
-        #y = x.reshape(-1, x.shape[1])  # Assuming you want to predict all series at once
 
-        # Fitting
-        inverse = np.linalg.pinv(phix)
-        W = inverse @ y
+        #Use ridge regression to estimate the weight
+        reg = 0.1
+        W = np.linalg.inv(phix.T @ phix + reg * np.eye(phix.shape[1])) @ phix.T @ y
+        
+
+
+        #W = inverse @ y
         y_pred = phix @ W
         #print(W.shape)
         mse.append(calculate_mse(y, y_pred))
         condition_numbers.append(np.linalg.cond(phix))
         snr.append(calculate_snr(y, y_pred))
-
+        """plt.plot(y[:,0],label='Actual')
+        plt.plot(y_pred[:,0],label='Predicted')
+        plt.legend()
+        plt.savefig(f'./dynsys/{k}_dynsys_rc_{NUMBER_OF_NODES}.png')
+        plt.close()"""
         #integrate_and_plot(y_pred, x, sampling_time)
 
         L = []
@@ -191,10 +204,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     Coupling_strengths = normc(Coupling_strengths.mean(0))
     #Min max normalize the array
     Coupling_strengths = (Coupling_strengths - Coupling_strengths.min()) / (Coupling_strengths.max() - Coupling_strengths.min())
-    #Zero out the diagonal
-    #print(Coupling_strengths)
-    np.fill_diagonal(Coupling_strengths, 0)
-
+#
 
 
     return Coupling_strengths, np.mean(condition_numbers), np.mean(mse),np.mean(snr)
