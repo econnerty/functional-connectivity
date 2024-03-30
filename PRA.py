@@ -9,6 +9,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns   
 from tqdm.auto import tqdm
 
+def normc(matrix):
+    column_norms = np.linalg.norm(matrix, axis=0)
+    normalized_matrix = matrix / column_norms[np.newaxis, :]
+    return normalized_matrix
+def normr(matrix):
+    row_norms = np.linalg.norm(matrix, axis=1)
+    normalized_matrix = matrix / row_norms[:, np.newaxis]
+    return normalized_matrix
+
 # Manual ESN Implementation
 class SimpleESN:
     def __init__(self, n_reservoir, spectral_radius, sparsity,rho=0.9, noise=0.1,alpha=1.0,leaky_rate=0.5,lag = -2):
@@ -71,9 +80,9 @@ def train_and_evaluate_with_states(esn, input_states, target_series):
     mse = np.mean((predictions - target_series) ** 2)
 
     #Get signal to noise ratio
-    if mse <= 1e-10:
-        mse = 1e-10
-    snr = np.mean(target_series ** 2) / mse
+    mse = mse + 1e-20
+    snr = np.mean(predictions ** 2) / mse
+    #print(snr)
     return snr
 
 
@@ -87,7 +96,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
     mse_results = np.zeros((n_series, n_series))
 
     # Initialize the ESN instance
-    esn = SimpleESN(n_reservoir=25, spectral_radius=1.0, sparsity=0.3)
+    esn = SimpleESN(n_reservoir=25, spectral_radius=1.2, sparsity=0.9)
     esn.initialize_weights()  # Initialize weights once at the start
 
     for i in range(n_series):
@@ -101,9 +110,11 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
 
         for j in range(n_series):
             target_series = epoch_data[j, :]
-                
+
+            #Calculate the time derivative of the target series
+            #target_series = np.diff(target_series)/0.001
             #target_series = np.roll(epoch_data[j, :], lag)
-            mse_results[i, j] = train_and_evaluate_with_states(esn, input_states_i, target_series)
+            mse_results[j, i] = train_and_evaluate_with_states(esn, input_states_i, target_series)
 
     # Invert MSE for adjacency matrix (higher value means stronger predictive power)
     #mse_results = np.where(mse_results < 1e-10, 1e-10, mse_results)
@@ -130,9 +141,16 @@ def PRA(var_dat=None):
     # Average the adjacency matrices across all epochs
     avg_adjacency_matrix = np.mean(np.array(all_adjacency_matrices), axis=0)
 
-    #Multiply each column by the value of that columns diagonal
+    #Multiply each column and row by the value of that columns diagonal
     for i in range(avg_adjacency_matrix.shape[0]):
-        avg_adjacency_matrix[:,i] = avg_adjacency_matrix[:,i] * avg_adjacency_matrix[i,i]
+        diag = avg_adjacency_matrix[i,i]
+        avg_adjacency_matrix[:,i] = avg_adjacency_matrix[:,i] * diag
+        avg_adjacency_matrix[i,:] = avg_adjacency_matrix[i,:] / diag
+
+
+    #Multiply each row by the value of that rows diagonal
+    #for i in range(avg_adjacency_matrix.shape[0]):
+    #    avg_adjacency_matrix[i,:] = avg_adjacency_matrix[i,:] * avg_adjacency_matrix[i,i]
 
     np.fill_diagonal(avg_adjacency_matrix, 0)
     #Min max normalize the matrix

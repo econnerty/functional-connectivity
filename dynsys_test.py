@@ -49,13 +49,13 @@ def filter_labels_with_vertices(labels_parc, src):
 #subjects_dir = "/work/erikc/inspected"
 subjects = ['sub-032304']
 subjects_dir = '~/Code/functional connectivity/'
-conditions = ['EC']
+conditions = ['EO']
 eeg_dir = '~/Code/functional connectivity/eeg'
 #eeg_dir = '/work/erikc/eeg'
 
 
 # In[36]:
-BOOTSTRAP_SAMPLES = 25
+BOOTSTRAP_SAMPLES = 35
 
 start_time = time.time()
 
@@ -166,7 +166,7 @@ for subject in subjects:
                     "region2": region
                 }
             )
-            xarray.to_netcdf(f'./dynsys/{subject}_array_pra_25_{condition}_alpha.nc')
+            xarray.to_netcdf(f'./PRA/{subject}_array_pra_25_{condition}_alpha.nc')
 
     except Exception as e:
         print(f'failed on {subject}')
