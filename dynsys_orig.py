@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spilu
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spilu
+from sklearn.linear_model import Lasso
 
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
@@ -95,15 +96,17 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
 
         #SVD Preconditioning
-        #U, s, Vt = np.linalg.svd(phix, full_matrices=False)
+        U, s, Vt = np.linalg.svd(phix, full_matrices=False)
         # Regularize small singular values
-        """threshold = 10.0
+        threshold = 100.0
         s_reg = np.array([max(x, threshold) for x in s])  # Regularize singular values
         S_reg = np.diag(s_reg)  # Construct a diagonal matrix with the regularized singular values
-        phix = np.dot(U, np.dot(S_reg, Vt))  # Reconstruct the modified matrix"""
+        #Construct the inverse
+        inverse = Vt.T @ np.linalg.inv(S_reg) @ U.T
+
 
         # Fitting
-        inverse = np.linalg.pinv(phix)
+        #inverse = np.linalg.pinv(phix)
         W = inverse @ y
         y_pred = phix @ W
         mse.append(calculate_mse(y, y_pred))

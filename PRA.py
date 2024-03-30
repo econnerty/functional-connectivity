@@ -96,7 +96,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0):
     mse_results = np.zeros((n_series, n_series))
 
     # Initialize the ESN instance
-    esn = SimpleESN(n_reservoir=25, spectral_radius=1.2, sparsity=0.9)
+    esn = SimpleESN(n_reservoir=100, spectral_radius=.8, sparsity=0.9)
     esn.initialize_weights()  # Initialize weights once at the start
 
     for i in range(n_series):
