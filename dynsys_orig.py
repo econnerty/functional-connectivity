@@ -57,7 +57,7 @@ def integrate_and_plot(y_pred, x, sampling_time):
     plt.title('Approximated Integral of the Time Series Data')
     plt.tight_layout()
     plt.savefig(f'./dynsys/approximated_integral_{REGRESSOR_COUNT}_sin.png')
-REGRESSOR_COUNT = 50
+REGRESSOR_COUNT = 15
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -96,18 +96,15 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
 
         #SVD Preconditioning
-        U, s, Vt = np.linalg.svd(phix, full_matrices=False)
-        # Regularize small singular values
-        threshold = 100.0
-        s_reg = np.array([max(x, threshold) for x in s])  # Regularize singular values
-        S_reg = np.diag(s_reg)  # Construct a diagonal matrix with the regularized singular values
-        #Construct the inverse
-        inverse = Vt.T @ np.linalg.inv(S_reg) @ U.T
-
+        # LASSO fitting
+        lasso_model = Lasso(alpha=.2)
+        lasso_model.fit(phix, y)
+        W = lasso_model.coef_.T
+        #print(W.shape)
 
         # Fitting
         #inverse = np.linalg.pinv(phix)
-        W = inverse @ y
+        #W = inverse @ y
         y_pred = phix @ W
         mse.append(calculate_mse(y, y_pred))
         condition_numbers.append(np.linalg.cond(phix))
