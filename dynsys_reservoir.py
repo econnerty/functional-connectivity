@@ -8,6 +8,7 @@ from scipy.sparse.linalg import spilu
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spilu
 from scipy.integrate import solve_ivp
+from sklearn.linear_model import LinearRegression,ElasticNet,Ridge,Lasso
 
 def normc(matrix):
     column_norms = np.linalg.norm(matrix, axis=0)
@@ -25,6 +26,8 @@ def calculate_mse(y_actual, y_pred):
 def calculate_snr(y_actual, y_pred):
     residuals = y_actual - y_pred
     mse = np.mean(np.square(residuals))
+    if mse == 0:
+        mse = 1e-10
     snr = 10 * np.log10(np.mean(np.square(y_pred)) / mse)
     return snr
 
@@ -84,7 +87,7 @@ class SimpleESN:
         # Internal weights
         W = np.random.rand(self.n_reservoir, self.n_reservoir) - 0.5
         # Set sparsity
-        W[np.random.rand(*W.shape) > self.sparsity] = 0
+        W[np.random.rand(*W.shape) < self.sparsity] = 0
         # Scale weights to have the desired spectral radius
         radius = np.max(np.abs(np.linalg.eigvals(W)))
         self.W = W * (self.spectral_radius / radius)
@@ -112,7 +115,7 @@ class SimpleESN:
         return np.dot(inputs, self.W_out.T)
 
 
-NUMBER_OF_NODES = 50
+NUMBER_OF_NODES = 1
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -130,17 +133,18 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
 
         y = []
         # Inferring Interactions
-        for j in range(len(x[:,0]) - 1):
-            y.append((x[j + 1, :] - x[j, :]) / sampling_time)
+        for j in range(x.shape[1]):
+            y.append(np.diff(x[:, j]) / sampling_time)
+            #y.append((x[j + 1, :] - x[j, :]) / sampling_time)
             
-        y = np.array(y)
+        y = np.array(y).T
         #y = x
 
         # Initialize a list to store reservoir states for each time series
         all_states = []
         
         for j in range(x.shape[1]):  # Iterate over each time series
-            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.8,leaky_rate=0.5)
+            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.0,leaky_rate=0.2)
             esn.initialize_weights()
 
             single_series_data = x[:-1, j]
@@ -158,21 +162,20 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         # Each item in all_states is of shape [time_points, n_reservoir], so stack along the second dimension
         phix = np.hstack(all_states)  # This forms a matrix of shape [time_points, n_reservoir*num_series]
         
-        # Add bias term
-        phix = np.column_stack([np.ones((phix.shape[0], 1)), phix])
+        # Add a column of ones to the regressor matrix
+        phix = np.insert(phix, 0, 1, axis=1)
 
-        #Use ridge regression to estimate the weight
-        reg = 0.1
-        W = np.linalg.inv(phix.T @ phix + reg * np.eye(phix.shape[1])) @ phix.T @ y
+        #Use ElasticNet for fitting
+        regressor = Lasso(alpha=1.0)
+
+        regressor.fit(phix, y)
         
-
-
-        #W = inverse @ y
+        W = regressor.coef_.T
         y_pred = phix @ W
         #print(W.shape)
-        mse.append(calculate_mse(y, y_pred))
-        condition_numbers.append(np.linalg.cond(phix))
-        snr.append(calculate_snr(y, y_pred))
+        #mse.append(calculate_mse(y, y_pred))
+        #condition_numbers.append(np.linalg.cond(phix))
+        #snr.append(calculate_snr(y, y_pred))
         """plt.plot(y[:,0],label='Actual')
         plt.plot(y_pred[:,0],label='Predicted')
         plt.legend()
@@ -199,9 +202,9 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         L = np.array(L)
         Coupling_strengths.append(L)
 
-    Coupling_strengths = np.array(Coupling_strengths)
+    Coupling_strengths = np.array(Coupling_strengths).mean(0)
     #print(Coupling_strengths.shape)
-    Coupling_strengths = normc(Coupling_strengths.mean(0))
+    Coupling_strengths = normc(Coupling_strengths)
     #Min max normalize the array
     Coupling_strengths = (Coupling_strengths - Coupling_strengths.min()) / (Coupling_strengths.max() - Coupling_strengths.min())
 #

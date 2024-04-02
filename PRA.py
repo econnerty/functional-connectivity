@@ -4,7 +4,7 @@
 #Pairwise Reservoir Approximation
 
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression,ElasticNet,Ridge,Lasso
 import matplotlib.pyplot as plt
 import seaborn as sns   
 from tqdm.auto import tqdm
@@ -41,7 +41,7 @@ class SimpleESN:
     def initialize_weights(self):
         # Internal weights
         W = np.random.rand(self.n_reservoir, self.n_reservoir) - 0.5
-        W[np.random.rand(*W.shape) > self.sparsity] = 0  # Set sparsity
+        W[np.random.rand(*W.shape) < self.sparsity] = 0  # Set sparsity
         radius = np.max(np.abs(np.linalg.eigvals(W)))
         self.W = W * (self.spectral_radius / radius)  # Scale weights
         
@@ -53,9 +53,10 @@ class SimpleESN:
 
     def update_state(self, input):
         # Include bias term in the pre-activation signal
-        pre_activation = np.dot(self.W, self.state) + np.dot(self.W_in, input) + self.W_bias
-        updated_state = self.sigmoid(pre_activation)
-        self.state = (1-self.leaky_rate) * updated_state + self.leaky_rate * self.state
+        pre_activation = (1-self.leaky_rate) * np.dot(self.W, self.state) + self.leaky_rate * (np.dot(self.W_in, input) + self.W_bias)
+        self.state = np.tanh(pre_activation)
+        #self.state = self.leaky_rate * updated_state + (1-self.leaky_rate) * self.state
+
     
     def predict(self, inputs):
         return np.dot(inputs, self.W_out.T)
@@ -65,26 +66,26 @@ def train_and_evaluate_with_states(esn, input_states, target_series):
     Trains an ESN with precomputed input and target states, then computes a modified MSE.
     De-means predictions and target before computing MSE to focus on pattern similarity.
     """
-    # Append a constant value (1) to each state vector for the bias term
-    biased_input_states = np.hstack([input_states, np.ones((len(input_states), 1))])
+    input_states = np.array(input_states)
 
-    # Train the readout layer with the biased input states and target series
-    reg = LinearRegression()
-    reg.fit(biased_input_states, target_series)
-    esn.W_out = reg.coef_
+    # Train the readout layer with ElasticNet
+    regressor = Lasso(alpha=5.0)
+    regressor.fit(input_states, target_series)
+    esn.W_out = regressor.coef_
+
 
     # Prepare for prediction by appending bias to input states
-    biased_input_states_for_pred = np.hstack([input_states, np.ones((len(input_states), 1))])
+    #biased_input_states_for_pred = np.hstack([input_states, np.ones((len(input_states), 1))])
 
     # Predict using the biased target states
-    predictions = esn.predict(biased_input_states_for_pred).flatten()
+    predictions = esn.predict(input_states).flatten()
 
     # De-mean both predictions and target series
-    de_meaned_predictions = predictions - np.mean(predictions)
-    de_meaned_target_series = target_series - np.mean(target_series)
+    #de_meaned_predictions = predictions - np.mean(predictions)
+    #de_meaned_target_series = target_series - np.mean(target_series)
 
     # Compute MSE on de-meaned series
-    mse = np.mean((de_meaned_predictions - de_meaned_target_series) ** 2)
+    mse = np.mean((predictions - target_series) ** 2)
 
     # Plot the results
     """plt.plot(de_meaned_predictions, label='De-meaned Prediction')
@@ -95,7 +96,7 @@ def train_and_evaluate_with_states(esn, input_states, target_series):
 
     # Get signal to noise ratio
     mse = mse + 1e-20  # Avoid division by zero
-    snr = np.mean(de_meaned_predictions ** 2) / mse
+    snr = np.mean(predictions ** 2) / mse
     return snr
 
 
@@ -109,8 +110,12 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0,sampling_time=0.01,num_
     n_series = epoch_data.shape[0]  # Number of time series
     mse_results = np.zeros((n_series, n_series))
 
+    sparsity = .3
+    if num_reservoir <= 10:
+        sparsity = 0.0
+
     # Initialize the ESN instance
-    esn = SimpleESN(n_reservoir=num_reservoir, spectral_radius=1.0, sparsity=0.7,leaky_rate=0.05)
+    esn = SimpleESN(n_reservoir=num_reservoir, spectral_radius=1.0, sparsity=sparsity,leaky_rate=0.4)
     esn.initialize_weights()  # Initialize weights once at the start
 
     for i in range(n_series):
@@ -137,15 +142,12 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0,sampling_time=0.01,num_
 
 
 #Pairwise Reservoir Approximation
-def PRA(var_dat=None,sampling_frequency=100,num_reservoir=50):
+def PRA(var_dat=None,sampling_frequency=100,num_reservoir=15):
     #Calculate the sampling time
     sampling_time = 1/sampling_frequency
     # Main process
-    #var_dat = np.transpose(var_dat, (2, 1, 0))
     n_epochs = var_dat.shape[0]
     n_series = var_dat.shape[1]  # Assuming var_dat is now [epochs, time_points, series]
-    #print(n_epochs)
-    #print(n_series)
     # Initialize a list to hold all adjacency matrices
     all_adjacency_matrices = []
     for k in tqdm(range(n_epochs)):

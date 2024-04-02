@@ -57,7 +57,9 @@ def integrate_and_plot(y_pred, x, sampling_time):
     plt.title('Approximated Integral of the Time Series Data')
     plt.tight_layout()
     plt.savefig(f'./dynsys/approximated_integral_{REGRESSOR_COUNT}_sin.png')
-REGRESSOR_COUNT = 15
+
+REGRESSOR_COUNT = 1
+
 def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
     # Initialize some example data (Replace these with your actual data)
     # Reading xarray Data from NetCDF file
@@ -75,10 +77,11 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
 
         y = []
         # Inferring Interactions
-        for j in range(len(x[:,0]) - 1):
-            y.append((x[j + 1, :] - x[j, :]) / sampling_time)
+        for j in range(x.shape[1]):
+            y.append(np.diff(x[:, j]) / sampling_time)
+            #y.append((x[j + 1, :] - x[j, :]) / sampling_time)
             
-        y = np.array(y)
+        y = np.array(y).T
             
         # Regressor generation
         phix_list = []
@@ -89,24 +92,26 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
                 else:  # For even indices, use cosine
                     term = np.cos((n // 2) * x[:-1, j])
                 phix_list.append(term)
-        #print(len(phix_list[0]))
         phix_array = np.array(phix_list).T
-        #print(phix_array.shape)
 
-        phix = np.column_stack([np.ones((len(x) - 1, 1)), phix_array])
+        # Add a column of ones to the regressor matrix
+        phix = np.insert(phix_array, 0, 1, axis=1)
+
+
 
         #SVD Preconditioning
         # LASSO fitting
-        lasso_model = Lasso(alpha=.2)
+        lasso_model = Lasso(alpha=.1)
         lasso_model.fit(phix, y)
         W = lasso_model.coef_.T
-        #print(W.shape)
 
         # Fitting
         #inverse = np.linalg.pinv(phix)
         #W = inverse @ y
         y_pred = phix @ W
-        mse.append(calculate_mse(y, y_pred))
+        mse_score = calculate_mse(y, y_pred)
+        print(mse_score)
+        mse.append(mse_score)
         condition_numbers.append(np.linalg.cond(phix))
         snr.append(calculate_snr(y, y_pred))
 
@@ -134,11 +139,14 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
             g = np.delete(g, 0)
             # Reshape g
             g = np.reshape(g, (REGRESSOR_COUNT, len(g) // REGRESSOR_COUNT))
-            gh_i = np.sqrt(np.sum(g ** 2, axis=0))
-            #print(gh_i)
+            #gh_i = np.sqrt(np.sum(g ** 2, axis=0))
+
+            #Sum each column
+            gh_i = np.sum(g,axis=0)
+
             #Change the ith element to a zero
             
-            #gh_i[i] = 0
+            gh_i[i] = 0
                 
             L.append(gh_i)
 
@@ -146,9 +154,9 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         L = np.array(L)
         Coupling_strengths.append(L)
 
-    Coupling_strengths = np.array(Coupling_strengths)
+    Coupling_strengths = np.array(Coupling_strengths).mean(0)
     #print(Coupling_strengths.shape)
-    Coupling_strengths = normc(Coupling_strengths.mean(0))
+    #Coupling_strengths = normc(Coupling_strengths.mean(0))
     #Min max normalize the array
     Coupling_strengths = (Coupling_strengths - Coupling_strengths.min()) / (Coupling_strengths.max() - Coupling_strengths.min())
     #Zero out the diagonal
