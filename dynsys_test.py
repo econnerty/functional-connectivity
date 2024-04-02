@@ -16,7 +16,7 @@ from spectral_connectivity import Multitaper, Connectivity
 import xarray as xr
 import time
 import gc
-import dynsys_orig as dynsys
+import dynsys_reservoir as dynsys
 import PRA as pra
 import seaborn as sns
 
@@ -49,13 +49,13 @@ def filter_labels_with_vertices(labels_parc, src):
 #subjects_dir = "/work/erikc/inspected"
 subjects = ['sub-032304']
 subjects_dir = '~/Code/functional connectivity/'
-conditions = ['EO']
+conditions = ['EO','EC']
 eeg_dir = '~/Code/functional connectivity/eeg'
 #eeg_dir = '/work/erikc/eeg'
 
 
 # In[36]:
-BOOTSTRAP_SAMPLES = 35
+BOOTSTRAP_SAMPLES = 25
 
 start_time = time.time()
 
@@ -89,7 +89,7 @@ for subject in subjects:
                 bem = mne.make_bem_solution(model)
                 mne.write_bem_solution(f'./fwd/{subject}_bemsol_{condition}.fif', bem, overwrite=False, verbose=None)
 
-            epochs = mne.make_fixed_length_epochs(raw, duration=18.0, preload=False)
+            epochs = mne.make_fixed_length_epochs(raw, duration=10.0, preload=False)
             epochs.set_eeg_reference(projection=True)
             epochs.apply_baseline((None,None))
 
@@ -137,7 +137,7 @@ for subject in subjects:
                 epoch_data = np.array(label_ts)
                 epoch_idx = np.arange(len(inds))
                 #dynsys_mat, condition_number,mse_temp,snr_temp = dynsys.dynSys(epoch_data[inds], epoch_idx, region, sampling_time=0.004)
-                dynsys_mat = pra.PRA(epoch_data[inds])
+                dynsys_mat = pra.PRA(epoch_data[inds],num_reservoir=20,sampling_frequency=250)
                 mats.append(dynsys_mat)
                 #mse.append(mse_temp)
                 #condition_numbers.append(condition_number)

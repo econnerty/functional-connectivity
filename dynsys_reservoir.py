@@ -26,8 +26,7 @@ def calculate_mse(y_actual, y_pred):
 def calculate_snr(y_actual, y_pred):
     residuals = y_actual - y_pred
     mse = np.mean(np.square(residuals))
-    if mse == 0:
-        mse = 1e-10
+    mse += 1e-5  # Add a small value to avoid division by zero
     snr = 10 * np.log10(np.mean(np.square(y_pred)) / mse)
     return snr
 
@@ -98,7 +97,7 @@ class SimpleESN:
     def update_state(self, input):
         pre_activation = np.dot(self.W, self.state) + np.dot(self.W_in, input)
         updated_state = np.tanh(pre_activation)
-        self.state = self.leaky_rate * updated_state + (1 - self.leaky_rate) * self.state
+        self.state = (1 - self.leaky_rate) * updated_state +  self.leaky_rate * self.state
 
 
     def train(self, inputs):
@@ -144,7 +143,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         all_states = []
         
         for j in range(x.shape[1]):  # Iterate over each time series
-            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.0,leaky_rate=0.2)
+            esn = SimpleESN(n_reservoir=NUMBER_OF_NODES, spectral_radius=1.0, sparsity=0.0,leaky_rate=0.5)
             esn.initialize_weights()
 
             single_series_data = x[:-1, j]
@@ -165,21 +164,19 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         # Add a column of ones to the regressor matrix
         phix = np.insert(phix, 0, 1, axis=1)
 
-        #Use ElasticNet for fitting
-        regressor = Lasso(alpha=1.0)
-
-        regressor.fit(phix, y)
-        
-        W = regressor.coef_.T
+        regressor = Ridge(alpha=10)
+        #W = inverse @ y
+        W = regressor.fit(phix, y).coef_.T
         y_pred = phix @ W
-        #print(W.shape)
-        #mse.append(calculate_mse(y, y_pred))
-        #condition_numbers.append(np.linalg.cond(phix))
-        #snr.append(calculate_snr(y, y_pred))
+        condition_number = np.linalg.cond(phix)
+        mse.append(calculate_mse(y, y_pred))
+        condition_numbers.append(condition_number)
+        snr.append(calculate_snr(y, y_pred))
         """plt.plot(y[:,0],label='Actual')
         plt.plot(y_pred[:,0],label='Predicted')
         plt.legend()
-        plt.savefig(f'./dynsys/{k}_dynsys_rc_{NUMBER_OF_NODES}.png')
+        plt.show()
+        #plt.savefig(f'./dynsys/{k}_dynsys_rc_{NUMBER_OF_NODES}.png')
         plt.close()"""
         #integrate_and_plot(y_pred, x, sampling_time)
 
@@ -192,7 +189,6 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
             # Reshape g
             g = np.reshape(g, (NUMBER_OF_NODES, len(g) // NUMBER_OF_NODES))
             gh_i = np.sqrt(np.sum(g ** 2, axis=0))
-            #print(gh_i)
             #Change the ith element to a zero
             gh_i[i] = 0
                 

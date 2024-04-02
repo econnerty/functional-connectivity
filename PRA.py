@@ -69,30 +69,15 @@ def train_and_evaluate_with_states(esn, input_states, target_series):
     input_states = np.array(input_states)
 
     # Train the readout layer with ElasticNet
-    regressor = Lasso(alpha=5.0)
+    regressor = Ridge(alpha=2)
     regressor.fit(input_states, target_series)
     esn.W_out = regressor.coef_
-
-
-    # Prepare for prediction by appending bias to input states
-    #biased_input_states_for_pred = np.hstack([input_states, np.ones((len(input_states), 1))])
 
     # Predict using the biased target states
     predictions = esn.predict(input_states).flatten()
 
-    # De-mean both predictions and target series
-    #de_meaned_predictions = predictions - np.mean(predictions)
-    #de_meaned_target_series = target_series - np.mean(target_series)
-
     # Compute MSE on de-meaned series
     mse = np.mean((predictions - target_series) ** 2)
-
-    # Plot the results
-    """plt.plot(de_meaned_predictions, label='De-meaned Prediction')
-    plt.plot(de_meaned_target_series, label='De-meaned Target')
-    plt.legend()
-    plt.show()"""
-    #print(mse)
 
     # Get signal to noise ratio
     mse = mse + 1e-20  # Avoid division by zero
@@ -115,7 +100,7 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0,sampling_time=0.01,num_
         sparsity = 0.0
 
     # Initialize the ESN instance
-    esn = SimpleESN(n_reservoir=num_reservoir, spectral_radius=1.0, sparsity=sparsity,leaky_rate=0.4)
+    esn = SimpleESN(n_reservoir=num_reservoir, spectral_radius=1.0, sparsity=sparsity,leaky_rate=0.8)
     esn.initialize_weights()  # Initialize weights once at the start
 
     for i in range(n_series):
@@ -132,12 +117,9 @@ def compute_adjacency_matrix_for_epoch(epoch_data, lag=0,sampling_time=0.01,num_
 
             #Calculate the time derivative of the target series
             target_series = np.diff(target_series)/sampling_time
-            #target_series = np.roll(epoch_data[j, :], lag)
+            
             mse_results[j, i] = train_and_evaluate_with_states(esn, input_states_i[:-1], target_series)
 
-    # Invert MSE for adjacency matrix (higher value means stronger predictive power)
-    #mse_results = np.where(mse_results < 1e-10, 1e-10, mse_results)
-    #adjacency_matrix = np.where(mse_results != 0, 1 / mse_results, 0)
     return mse_results
 
 
@@ -159,23 +141,10 @@ def PRA(var_dat=None,sampling_frequency=100,num_reservoir=15):
     # Average the adjacency matrices across all epochs
     avg_adjacency_matrix = np.mean(np.array(all_adjacency_matrices), axis=0)
 
-    #Multiply each column and row by the value of that columns diagonal
-    #for i in range(avg_adjacency_matrix.shape[0]):
-    #    diag = avg_adjacency_matrix[i,i]
-    #    avg_adjacency_matrix[:,i] = avg_adjacency_matrix[:,i] * diag
-    #    avg_adjacency_matrix[i,:] = avg_adjacency_matrix[i,:] / diag
-
-
-    #Multiply each row by the value of that rows diagonal
-    #for i in range(avg_adjacency_matrix.shape[0]):
-    #    avg_adjacency_matrix[i,:] = avg_adjacency_matrix[i,:] * avg_adjacency_matrix[i,i]
-
+    # Set diagonal to zero
     np.fill_diagonal(avg_adjacency_matrix, 0)
     #Min max normalize the matrix
     avg_adjacency_matrix = (avg_adjacency_matrix - np.min(avg_adjacency_matrix)) / (np.max(avg_adjacency_matrix) - np.min(avg_adjacency_matrix))
 
-    #Zeros out the diagonal
-    #np.fill_diagonal(avg_adjacency_matrix, 0)
     return avg_adjacency_matrix
-    #output = sns.heatmap(avg_adjacency_matrix, xticklabels=region_dat, yticklabels=region_dat)
-    #output.get_figure().savefig(f'./dynsys/reservoir.png')
+

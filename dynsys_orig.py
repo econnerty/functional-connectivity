@@ -101,7 +101,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
 
         #SVD Preconditioning
         # LASSO fitting
-        lasso_model = Lasso(alpha=.1)
+        lasso_model = Lasso(alpha=1.0)
         lasso_model.fit(phix, y)
         W = lasso_model.coef_.T
 
@@ -110,7 +110,6 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
         #W = inverse @ y
         y_pred = phix @ W
         mse_score = calculate_mse(y, y_pred)
-        print(mse_score)
         mse.append(mse_score)
         condition_numbers.append(np.linalg.cond(phix))
         snr.append(calculate_snr(y, y_pred))
@@ -156,7 +155,7 @@ def dynSys(var_dat=None,epoch_dat=None,region_dat=None,sampling_time=.004):
 
     Coupling_strengths = np.array(Coupling_strengths).mean(0)
     #print(Coupling_strengths.shape)
-    #Coupling_strengths = normc(Coupling_strengths.mean(0))
+    Coupling_strengths = normc(Coupling_strengths)
     #Min max normalize the array
     Coupling_strengths = (Coupling_strengths - Coupling_strengths.min()) / (Coupling_strengths.max() - Coupling_strengths.min())
     #Zero out the diagonal
